@@ -8,7 +8,7 @@ Aplikasi ini **halaman web biasa** (bukan aplikasi terinstal): tidak perlu serve
 
 App ini sekarang **juga** di-hosting online (gratis, lewat GitHub Pages) di:
 
-**https://dithaarysanjaya-hash.github.io/senantiasa-app/**
+**https://dithasanjaya.github.io/senantiasa-app/**
 
 Beda dari versi lokal (folder di komputer) di bawah ini:
 
