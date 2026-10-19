@@ -818,6 +818,177 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--s
   body.menu-terbuka .sidebar-backdrop { display: block; }
 }
 
+/* ==========================================================================
+   TEMA MODERN (tampilan saja -- struktur menu, halaman & alur kerja TIDAK berubah)
+   Diletakkan di akhir file (sebelum aturan cetak) supaya menimpa gaya dasar di atas lewat
+   urutan cascade biasa. Arah desain: kanvas abu hangat, kartu putih sangat membulat dgn
+   bayangan halus, menu berbentuk pill (aktif = pill gelap), angka besar tebal, 1 kartu "hero"
+   beraksen oranye merek, font Inter. Layout yg mengubah ukuran/posisi sidebar & konten dibatasi
+   di @media layar >= 861px supaya drawer mobile & cetak laporan tidak terganggu.
+   ========================================================================== */
+:root {
+  --bg: #F3F0ED;
+  --garis: #ECE6E1;
+  --radius: 20px;
+  --radius-sm: 16px;
+  --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  --bayangan-kartu: 0 1px 2px rgba(42, 33, 28, .04), 0 10px 28px -14px rgba(42, 33, 28, .14);
+  --bayangan-angkat: 0 2px 4px rgba(42, 33, 28, .05), 0 22px 40px -16px rgba(42, 33, 28, .22);
+  --tinta: #1F1A17;
+  --hero-1: #F08A5D;
+  --hero-2: #D4623A;
+}
+body { font-family: var(--font-ui); -webkit-font-smoothing: antialiased; letter-spacing: -.005em; }
+button, input, select, textarea { font-family: inherit; }
+
+/* Scrollbar tipis */
+.konten, .sidebar { scrollbar-width: thin; scrollbar-color: #D9D0C9 transparent; }
+.konten::-webkit-scrollbar, .sidebar::-webkit-scrollbar { width: 8px; }
+.konten::-webkit-scrollbar-thumb, .sidebar::-webkit-scrollbar-thumb { background: #D9D0C9; border-radius: 8px; }
+
+/* ---------- Judul: sans tebal (bukan serif italic), lebih rapat ---------- */
+.halaman__header h1 { font-family: var(--font-ui); font-weight: 800; font-size: 30px; letter-spacing: -.025em; }
+.halaman__header p { font-size: 13.5px; margin-top: 6px; }
+.kartu h2, .overview-kolom__judul, .pengaturan-seksi h3, .pengaturan-tab__judul, .kalender-head strong, .tren-tooltip strong {
+  font-family: var(--font-ui); font-style: normal; font-weight: 700; letter-spacing: -.015em;
+}
+.kartu h2 { font-size: 16px; }
+.overview-kolom__judul { font-size: 17px; }
+.pengaturan-tab__judul { font-weight: 600; font-size: 13px; letter-spacing: 0; }
+.gerbang-kunci__kotak h1 { font-family: var(--font-ui); font-weight: 800; letter-spacing: -.02em; }
+
+/* ---------- Kartu & panel: sudut besar, tanpa garis tegas, bayangan lembut ---------- */
+.kartu, .stat, .produk-grid-card, .produk-list, .produk-detail-baris {
+  border: 1px solid rgba(236, 230, 225, .7); box-shadow: var(--bayangan-kartu);
+}
+.kartu { padding: 20px 22px; }
+.kartu:hover, .produk-detail-baris:hover { box-shadow: var(--bayangan-kartu); }
+.kartu.klik:hover, .stat.klik:hover, .produk-grid-card:hover, .produk-detail-baris:hover {
+  box-shadow: var(--bayangan-angkat); border-color: rgba(212, 116, 68, .35);
+}
+.produk-grid-card, .produk-list { border-radius: var(--radius); }
+.produk-detail-baris { border-radius: var(--radius); padding: 12px 16px; }
+.foto-rasio { border-radius: 14px; }
+.produk-grid-card .foto-rasio { border-radius: 0; }
+.modal { border-radius: 28px; padding: 28px 30px; box-shadow: 0 30px 80px -20px rgba(31, 26, 23, .4); }
+.modal h2 { font-size: 19px; font-weight: 800; letter-spacing: -.02em; }
+.modal-overlay { background: rgba(31, 26, 23, .42); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+.rentang-panel { border-radius: 22px; border-color: transparent; box-shadow: var(--bayangan-angkat); }
+.combo-panel { border-radius: 16px; border-color: transparent; box-shadow: var(--bayangan-angkat); }
+.combo-opsi { border-radius: 10px; }
+.gerbang-kunci { background: var(--bg); }
+.gerbang-kunci__kotak { border-radius: 28px; border-color: transparent; padding: 38px 32px; max-width: 360px; box-shadow: var(--bayangan-angkat); }
+
+/* ---------- Kartu statistik: angka besar, ikon bulat ---------- */
+.stat { padding: 18px 20px; gap: 6px; }
+.stat__icon { width: 40px; height: 40px; border-radius: 50%; }
+.stat__label { font-size: 12.5px; text-transform: none; letter-spacing: 0; font-weight: 500; }
+.stat__nilai { font-size: 27px; font-weight: 800; letter-spacing: -.03em; line-height: 1.15; }
+.stat__sub { font-size: 12px; }
+.stat.warn .stat__nilai { color: var(--sienna-dark); }
+.overview-compact .stat { padding: 12px 13px; }
+.overview-compact .stat__icon { width: 28px; height: 28px; border-radius: 50%; }
+.overview-compact .stat__label { font-size: 11px; }
+.overview-compact .stat__nilai { font-size: 18px; }
+
+/* Kartu hero (Omzet di Overview) -- satu-satunya blok berwarna penuh, seperti kartu oranye di referensi */
+.stat--hero {
+  background: linear-gradient(145deg, var(--hero-1) 0%, var(--hero-2) 100%);
+  border-color: transparent; color: #fff;
+  box-shadow: 0 18px 34px -16px rgba(212, 98, 58, .6);
+}
+.stat--hero.klik:hover { border-color: transparent; box-shadow: 0 24px 44px -16px rgba(212, 98, 58, .7); }
+.stat--hero .stat__label, .stat--hero .stat__sub { color: rgba(255, 255, 255, .82); }
+.stat--hero .stat__nilai, .stat--hero.warn .stat__nilai { color: #fff; }
+.stat--hero .stat__icon { background: rgba(255, 255, 255, .22); color: #fff; }
+.stat--hero .stat__sub .naik, .stat--hero .stat__sub .turun {
+  color: #fff; background: rgba(255, 255, 255, .22); padding: 2px 8px; border-radius: 999px;
+}
+.stat--filter-aktif { box-shadow: 0 0 0 3px rgba(212, 116, 68, .22), var(--bayangan-kartu); }
+
+/* ---------- Tombol: pill ---------- */
+.btn { padding: 9px 18px; border-radius: 999px; border-color: var(--garis); font-weight: 600; }
+.btn:hover { background: #F7F3F0; box-shadow: 0 6px 14px -6px rgba(42, 33, 28, .18); }
+.btn-primer { box-shadow: 0 8px 18px -8px rgba(212, 116, 68, .65); }
+.btn-primer:hover { box-shadow: 0 10px 22px -8px rgba(212, 116, 68, .75); }
+.btn-bahaya { border-color: #EFCBC5; }
+.btn-kecil { padding: 6px 12px; }
+.btn-ikon { padding: 0; width: 30px; height: 30px; border-radius: 50%; }
+
+/* ---------- Form: kolom isian abu lembut, fokus bercincin ---------- */
+input, select, textarea {
+  padding: 10px 14px; border-radius: 14px; border: 1px solid transparent; background: #F4F0ED;
+  transition: background .15s ease, border-color .15s ease, box-shadow .15s ease;
+}
+input:hover, select:hover, textarea:hover { background: #F0EBE7; }
+input:focus, select:focus, textarea:focus { background: #fff; border-color: var(--sienna); box-shadow: 0 0 0 4px rgba(212, 116, 68, .14); }
+input[type="checkbox"], input[type="radio"] { width: auto; padding: 0; box-shadow: none; }
+label { font-weight: 600; }
+input[type="file"]::file-selector-button {
+  margin-right: 12px; padding: 6px 14px; border: none; border-radius: 999px; background: var(--tinta);
+  color: #fff; font-weight: 600; font-size: 12.5px; font-family: inherit; cursor: pointer;
+}
+.toolbar input, .toolbar select { background: #fff; box-shadow: var(--bayangan-kartu); }
+.toolbar input:focus, .toolbar select:focus { box-shadow: 0 0 0 4px rgba(212, 116, 68, .14); }
+.gerbang-kunci__kotak input { border-radius: 14px; border-color: transparent; background: #F4F0ED; padding: 12px 14px; }
+.gerbang-kunci__kotak input:focus { outline: none; background: #fff; border-color: var(--sienna); box-shadow: 0 0 0 4px rgba(212, 116, 68, .14); }
+.gerbang-kunci__kotak button { border-radius: 999px; padding: 12px 16px; box-shadow: 0 10px 20px -8px rgba(212, 116, 68, .65); }
+
+/* ---------- Chip, tab, badge ---------- */
+.rentang-btn { background: #fff; border-color: transparent; box-shadow: var(--bayangan-kartu); padding: 10px 16px; }
+.chip-filter-v, .chip-preset { border-color: transparent; background: #F4F0ED; }
+.chip-filter-v.aktif { background: var(--sienna); }
+.pengaturan-tab { border-color: transparent; background: #fff; box-shadow: var(--bayangan-kartu); }
+.btn-view { border-radius: 10px; border-color: transparent; background: #F4F0ED; }
+.btn-view.aktif { background: var(--tinta); border-color: var(--tinta); }
+.badge { padding: 4px 11px; }
+.chip-ukuran { background: #F4EDE8; }
+
+/* ---------- Tabel ---------- */
+th { text-transform: none; letter-spacing: 0; font-size: 12px; font-weight: 600; padding: 10px 12px; }
+td { padding: 12px 12px; }
+th, td { border-bottom-color: #F1ECE8; }
+tbody tr:hover { background: #FAF6F3; }
+.tabel-grup-baris td { background: #F7F2EE; }
+.produk-list-baris:hover { background: #FAF6F3; }
+
+/* ---------- Layar lebar: sidebar & konten jadi dua panel melayang ---------- */
+@media screen and (min-width: 861px) {
+  .app { padding: 14px; gap: 14px; }
+  .sidebar {
+    width: 236px; height: calc(100vh - 28px); border-right: none; border-radius: 28px;
+    background: #fff; box-shadow: var(--bayangan-kartu); padding: 22px 0 18px;
+  }
+  .sidebar__brand { border-bottom: none; padding: 0 22px 14px; margin-bottom: 4px; }
+  .nav { padding: 0 14px; gap: 3px; }
+  .nav__item { padding: 11px 14px; border-radius: 999px; font-size: 13.5px; font-weight: 500; }
+  .nav__item:hover { background: #F4F0ED; color: var(--teks); transform: none; }
+  .nav__item.aktif { background: var(--tinta); color: #fff; font-weight: 600; box-shadow: 0 10px 20px -10px rgba(31, 26, 23, .6); }
+  .nav__item[data-nav="pembukuan"].aktif { background: var(--ws-senantiasa-bg); color: var(--ws-senantiasa); box-shadow: none; }
+  .nav__item[data-nav="pembukuan-dinda"].aktif { background: var(--ws-dinda-bg); color: var(--ws-dinda); box-shadow: none; }
+  .nav__item[data-nav="pembukuan-retro"].aktif { background: var(--ws-retro-bg); color: var(--ws-retro); box-shadow: none; }
+  .sidebar__filter { border-top-color: #F1ECE8; padding: 12px 18px 6px; }
+  .sidebar__footer { border-top-color: #F1ECE8; padding: 12px 22px 0; }
+  .konten { height: calc(100vh - 28px); border-radius: 28px; }
+  .konten__isi { padding-top: 14px; }
+  .halaman-sticky-host { border-radius: 28px 28px 0 0; }
+  .halaman-sticky-host__inner { padding-top: 22px; }
+}
+.banner { margin: 14px clamp(20px, 3vw, 48px) 0; border: none; border-radius: 16px; padding: 10px 18px; }
+/* Bar atas mobile & drawer: ikut gaya lembut */
+.mobile-topbar { background: rgba(255, 255, 255, .92); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-bottom-color: transparent; box-shadow: 0 6px 20px -12px rgba(42, 33, 28, .25); }
+.btn-buka-menu { border-radius: 50%; border-color: transparent; background: #F4F0ED; }
+@media (max-width: 860px) {
+  .sidebar { border-radius: 0 28px 28px 0; }
+  .nav__item { border-radius: 999px; }
+  .nav__item.aktif { background: var(--tinta); color: #fff; }
+  .nav__item[data-nav="pembukuan"].aktif { background: var(--ws-senantiasa-bg); color: var(--ws-senantiasa); }
+  .nav__item[data-nav="pembukuan-dinda"].aktif { background: var(--ws-dinda-bg); color: var(--ws-dinda); }
+  .nav__item[data-nav="pembukuan-retro"].aktif { background: var(--ws-retro-bg); color: var(--ws-retro); }
+  .kartu { padding: 16px 16px; }
+  .modal { padding: 22px 20px; border-radius: 24px; }
+}
+
 @media print {
   /* Paksa browser tetap mencetak warna latar (badge channel, zebra-stripe tabel, bar chart,
      aksen baris stok rendah, dst) -- defaultnya banyak browser/PDF export MELEWATI semua

@@ -211,9 +211,9 @@ const KELAS_CHANNEL = { 'Toko': 'toko', 'Tokopedia': 'tokopedia', 'Shopee': 'sho
 // Dipakai lewat ikonChannel()/badgeChannel() supaya representasinya SAMA di seluruh app &
 // laporan (bukan cuma tulisan nama channel yg makan tempat).
 const CHANNEL_LOGO = {
-  'Tokopedia': 'assets/img/channel-tokopedia.svg?v=20260924t',
-  'Shopee': 'assets/img/channel-shopee.svg?v=20260924t',
-  'TikTok Shop': 'assets/img/channel-tiktok.png?v=20260924t'
+  'Tokopedia': 'assets/img/channel-tokopedia.svg?v=20260924u',
+  'Shopee': 'assets/img/channel-shopee.svg?v=20260924u',
+  'TikTok Shop': 'assets/img/channel-tiktok.png?v=20260924u'
 };
 const IKON_TOKO_KECIL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1.4-5h15.2L21 9"/><path d="M4 9v10a1 1 0 0 0 1 1h4v-7h6v7h4a1 1 0 0 0 1-1V9"/><path d="M3 9h18"/></svg>';
 

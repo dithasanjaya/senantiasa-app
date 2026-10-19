@@ -4,15 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Inventory dan Pembukuan</title>
-<link rel="icon" type="image/png" href="assets/img/logo.png?v=20260924t">
-<link rel="apple-touch-icon" href="assets/img/logo.png?v=20260924t">
+<link rel="icon" type="image/png" href="assets/img/logo.png?v=20260924u">
+<link rel="apple-touch-icon" href="assets/img/logo.png?v=20260924u">
 <!-- manifest.json + theme-color = syarat PWA supaya bisa "Instal Aplikasi" (lihat sw.js utk
      catatan lengkap -- hanya aktif kalau dibuka lewat http(s), bukan file:// langsung). -->
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#D47444">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;0,700;1,500;1,600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lora:ital,wght@0,500;0,600;0,700;1,500;1,600&display=swap" rel="stylesheet">
 <!-- SDK Firebase (assets/js/firebase-init.js) didownload dari CDN google -- di koneksi biasa itu
      makan waktu, dan SELAMA itu gerbang login (di bawah) menunggu tahu status login sblm nentuin
      tampilan apa yg muncul. "modulepreload" di sini mulai download-nya SEDINI mungkin (bareng
@@ -23,10 +23,10 @@
 <!-- "?v=" di tiap file CSS/JS/gambar di bawah ini SENGAJA ada -- ini "cache-busting": browser
      menganggap URL dgn query string berbeda sbg file yg berbeda sama sekali, jadi tidak akan
      memakai salinan lama yg ke-cache dari kunjungan sebelumnya ke folder yg sama. Kalau ke depan
-     ada pembaruan file index.html/assets, GANTI NILAI "v=20260924t" di semua tag ini (cukup
+     ada pembaruan file index.html/assets, GANTI NILAI "v=20260924u" di semua tag ini (cukup
      cari-ganti satu nilai yg sama) supaya versi terbaru pasti termuat, bukan versi lama dari cache
      browser. -->
-<link rel="stylesheet" href="assets/css/style.css?v=20260924t">
+<link rel="stylesheet" href="assets/css/style.css?v=20260924u">
 </head>
 <body>
 
@@ -43,8 +43,8 @@
 <div id="gerbangKunci" class="gerbang-kunci">
   <div class="gerbang-kunci__spinner" aria-label="Memuat"></div>
 </div>
-<script type="module" src="assets/js/firebase-init.js?v=20260924t"></script>
-<script src="assets/js/auth.js?v=20260924t"></script>
+<script type="module" src="assets/js/firebase-init.js?v=20260924u"></script>
+<script src="assets/js/auth.js?v=20260924u"></script>
 
 <!-- Bar atas & backdrop cuma tampil di layar sempit (lihat @media di style.css) -- sidebar
      (menu + filter kontekstual) jadi panel geser (drawer) yg ditoggle lewat class "menu-terbuka"
@@ -55,16 +55,16 @@
   <button type="button" id="btnBukaMenu" class="btn-buka-menu" aria-label="Buka menu">
     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
   </button>
-  <img src="assets/img/logo.png?v=20260924t" alt="" class="mobile-topbar__logo">
+  <img src="assets/img/logo.png?v=20260924u" alt="" class="mobile-topbar__logo">
 </div>
 <div id="sidebarBackdrop" class="sidebar-backdrop"></div>
 
 <div class="app">
   <aside class="sidebar">
     <div class="sidebar__brand">
-      <img src="assets/img/logo.png?v=20260924t" alt="" class="sidebar__logo-img">
+      <img src="assets/img/logo.png?v=20260924u" alt="" class="sidebar__logo-img">
       <div class="sidebar__nama">
-        <img src="assets/img/wordmark.png?v=20260924t" alt="Senantiasa" class="sidebar__wordmark">
+        <img src="assets/img/wordmark.png?v=20260924u" alt="Senantiasa" class="sidebar__wordmark">
         <span>Inventory dan Pembukuan</span>
       </div>
       <button type="button" id="btnTutupMenu" class="sidebar__tutup-menu" aria-label="Tutup menu">&times;</button>
@@ -128,11 +128,11 @@
 <div id="modalHost"></div>
 <div id="tooltipGlobal" class="tooltip-global" role="tooltip" aria-hidden="true"></div>
 
-<script src="assets/js/data.js?v=20260924t"></script>
-<script src="assets/js/seed-produk.js?v=20260924t"></script>
-<script src="assets/js/seed-transaksi.js?v=20260924t"></script>
-<script src="assets/js/ui.js?v=20260924t"></script>
-<script src="assets/js/rangepicker.js?v=20260924t"></script>
-<script src="assets/js/app.js?v=20260924t"></script>
+<script src="assets/js/data.js?v=20260924u"></script>
+<script src="assets/js/seed-produk.js?v=20260924u"></script>
+<script src="assets/js/seed-transaksi.js?v=20260924u"></script>
+<script src="assets/js/ui.js?v=20260924u"></script>
+<script src="assets/js/rangepicker.js?v=20260924u"></script>
+<script src="assets/js/app.js?v=20260924u"></script>
 </body>
 </html>
