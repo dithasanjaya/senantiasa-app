@@ -825,10 +825,10 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--s
    - Datar & hangat: kanvas putih, sidebar abu hangat, kartu putih border 1px hairline radius 12,
      TANPA bayangan saat diam (bayangan hanya hover halus & panel melayang).
    - Tombol PERSEGI radius 8 (bukan pill); pill hanya utk chip/tab (aktif = pill hitam).
-   - Satu aksen (--aksen, ungu Notion) utk tombol utama & fokus; tint pastel utk kartu hero & tag.
+   - Satu aksen (--aksen, sage dari logo) utk tombol utama & fokus; tint pastel utk kartu hero & tag.
    - Teks charcoal hangat, huruf Inter, judul 600 dgn tracking negatif. Tanpa gradien/blur/ikon KPI.
-   - Tiap pembukuan punya tangga warna sendiri (--aksen*, --bg, --sheet): Dinda mawar, Retro teal.
-   Ganti warna aksen Senantiasa cukup ubah blok :root di bawah (mis. ke sage #5D7040).
+   - Tiap pembukuan punya tangga warna sendiri (--aksen*, --bg, --sheet): Senantiasa sage (warna wordmark logo), Dinda mawar, Retro teal.
+   Ganti warna aksen Senantiasa cukup ubah blok :root di bawah (versi Notion asli: ungu #5645D4).
    Layout yg mengubah ukuran/posisi dibatasi di layar >= 861px supaya drawer mobile & cetak aman.
    ========================================================================== */
 :root {
@@ -845,18 +845,18 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--s
   --tinta: #1A1A1A;
   --pasir: #F0EEEC;
 
-  --aksen: #5645D4;
-  --aksen-ink: #3A2A99;
-  --aksen-tint: #E6E0F5;
-  --aksen-pale: #F3F0FB;
-  --aksen-mid: #8A7BDC;
-  --aksen-fokus: rgba(86, 69, 212, .3);
+  --aksen: #5D7040;
+  --aksen-ink: #3F4E2B;
+  --aksen-tint: #E6EDD3;
+  --aksen-pale: #F3F6EA;
+  --aksen-mid: #8FA35A;
+  --aksen-fokus: rgba(93, 112, 64, .3);
 
   --tint-persik: #FFE8D4; --tint-mawar: #FDE0EC; --tint-mint: #D9F3E1; --tint-langit: #DCECFA;
   --tint-kuning: #FEF7D6; --tint-kuning-tebal: #F9E79F; --tint-abu: #F0EEEC;
   --link: #0075DE;
 
-  --ws-senantiasa: #5645D4; --ws-senantiasa-bg: #E6E0F5;
+  --ws-senantiasa: #5D7040; --ws-senantiasa-bg: #DCE6C4;
   --ws-dinda: #A02E6D;      --ws-dinda-bg: #F8D0E1;     --ws-dinda-page-bg: #FFFBFC;
   --ws-retro: #2A7F86;      --ws-retro-bg: #C3E3E6;     --ws-retro-page-bg: #F7FBFB;
 
