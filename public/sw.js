@@ -4,11 +4,12 @@
 //
 // Hanya aktif lewat http(s) -- tidak jalan dari file://.
 // Naikkan angka versi tiap kali file inti berubah supaya klien lama membuang cache basi.
-const CACHE_NAME = 'senantiasa-cache-v2';
+const CACHE_NAME = 'senantiasa-cache-v3';
 const ASET_INTI = [
   './',
   './manifest.json',
   './assets/css/style.css',
+  './assets/css/tema.css',
   './assets/js/data.js',
   './assets/js/stok.js',
   './assets/js/migrasi.js',
@@ -18,6 +19,7 @@ const ASET_INTI = [
   './assets/js/rangepicker.js',
   './assets/js/app.js',
   './assets/js/halaman-stok.js',
+  './assets/js/gerak.js',
   './assets/js/firebase-init.js',
   './assets/js/auth.js',
   './assets/img/logo.png',

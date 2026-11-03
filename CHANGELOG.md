@@ -1,5 +1,14 @@
 # Riwayat perubahan
 
+## 2.1.0 (4 November 2026): tema Aurora
+
+Tahap UI/UX. Bentuk mengikuti inspirasi ERP/POS (bingkai besar membulat, panel kaca buram, tombol pill, kartu pastel), warna tetap palet Senantiasa.
+- Lapisan tema terpisah `public/assets/css/tema.css` (hapus file ini untuk kembali ke tampilan sebelumnya) dan `public/assets/js/gerak.js`.
+- Sidebar dan konten sebagai dua panel kaca melayang di atas latar aurora; pil menu aktif yang meluncur antar menu.
+- Gerak: kartu muncul berurutan tiap pindah halaman, angka statistik menghitung naik, modal dan toast membal halus, tombol terangkat saat disentuh. Semua berhenti jika perangkat meminta kurangi gerak.
+- Pembiasaan: sapaan sesuai waktu dengan ringkasan yang perlu dikerjakan, tombol cepat **Catat** (juga tombol keyboard `c`) dari halaman mana pun, bar kemajuan dan konfeti di Sinkron Marketplace, keadaan "semua sudah sinkron".
+- Overview tidak lagi terpotong di jendela sempit.
+
 ## 2.0.0 (3 November 2026): rombak backend dan frontend
 
 **Masalah yang diperbaiki.** Versi lama menyimpan stok terpisah per channel dan menjumlahkannya. Satu baju fisik yang ditulis 1 di Shopee dan 1 di TikTok terbaca 2 atau 3, sehingga stok sebenarnya sulit dicek dan angka tidak sama dengan yang diinput di marketplace. Semua data juga berada dalam satu dokumen Firestore, sehingga dua perangkat yang menyimpan bersamaan bisa saling menimpa.

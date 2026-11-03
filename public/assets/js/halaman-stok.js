@@ -4,6 +4,8 @@
 
 const LABEL_LISTING = { 'Shopee': 'Shopee', 'TikTok Shop': 'TikTok' };
 
+let SINKRON_AWAL = 0; // jumlah antrian di awal kunjungan, utk bar kemajuan
+
 function teksListing(n) { return n === null ? '?' : String(n); }
 
 // ---------- Sel "angka di marketplace" pada tabel varian ----------
@@ -21,10 +23,30 @@ function pasangAksiSelListing(setelah) {
     btn.addEventListener('click', () => {
       const [vId, channel] = btn.dataset.sesuaikan.split('|');
       sesuaikanListing(vId, [channel]);
-      tampilkanToast(`Angka ${channel} dicatat sudah sesuai.`, 'sukses');
-      setelah();
+      const baris = btn.closest('.sinkron-baris');
+      if (!baris) { tampilkanToast(`Angka ${channel} dicatat sudah sesuai.`, 'sukses'); setelah(); return; }
+      // di halaman Sinkron: baris meluncur keluar dulu, lalu daftar digambar ulang; yang terakhir dirayakan
+      btn.disabled = true;
+      baris.classList.add('selesai');
+      if (!antrianSinkronSaatIni().length && window.rayakan) window.rayakan(btn);
+      setTimeout(setelah, 480);
     });
   });
+}
+
+// ---------- Sapaan di Overview ----------
+function sapaanWaktu() {
+  const j = new Date().getHours();
+  return j < 11 ? 'Selamat pagi' : j < 15 ? 'Selamat siang' : j < 18 ? 'Selamat sore' : 'Selamat malam';
+}
+function htmlRingkasSapaan() {
+  const perlu = antrianSinkronSaatIni().reduce((a, x) => a + x.item.length, 0);
+  const menipis = daftarStokMenipis().length;
+  const chip = [];
+  if (perlu) chip.push(`<a class="sapa__chip sapa__chip--perlu" href="#sinkron"><i></i>${perlu} angka marketplace perlu diubah</a>`);
+  if (menipis) chip.push(`<a class="sapa__chip sapa__chip--menipis" href="#produk" onclick="SORT_PRODUK='stok-rendah'"><i></i>${menipis} stok menipis</a>`);
+  if (!chip.length) chip.push('<span class="sapa__chip"><i></i>Semua stok dan marketplace sudah beres</span>');
+  return chip.join('');
 }
 
 // ---------- Titik status di kartu produk ----------
@@ -73,6 +95,7 @@ function htmlKartuSinkronRingkas() {
 // HALAMAN: SINKRON MARKETPLACE
 // ============================================================
 function renderSinkron() {
+  renderBanner(); // menyegarkan lencana di sidebar
   const antrian = antrianSinkronSaatIni();
   const total = antrian.reduce((a, x) => a + x.item.length, 0);
   KONTEN_STICKY().innerHTML = `
@@ -86,11 +109,19 @@ function renderSinkron() {
     </div>`;
 
   const kontainer = KONTEN();
+  if (total > SINKRON_AWAL || SINKRON_AWAL === 0) SINKRON_AWAL = total;
   if (!total) {
-    kontainer.innerHTML = `<div class="kartu"><div class="kosong">Tidak ada yang perlu diubah. Setiap kali ada penjualan atau restock, daftar ini otomatis terisi.</div></div>`;
+    const selesaiHariIni = SINKRON_AWAL;
+    SINKRON_AWAL = 0;
+    kontainer.innerHTML = `<div class="kartu sinkron-bersih">
+      <div class="sinkron-bersih__cek"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
+      <h2>${selesaiHariIni ? 'Semua sudah sinkron' : 'Tidak ada yang perlu diubah'}</h2>
+      <p class="teks-lemah">${selesaiHariIni ? `${selesaiHariIni} angka sudah kamu sesuaikan.` : 'Setiap ada penjualan atau restock, daftar ini otomatis terisi.'}</p>
+    </div>`;
     pasangHeaderSticky();
     return;
   }
+  const selesaiN = Math.max(0, SINKRON_AWAL - total);
 
   const perChannel = CHANNEL_ONLINE.map(c => ({
     channel: c,
@@ -98,6 +129,7 @@ function renderSinkron() {
   })).filter(g => g.baris.length);
 
   kontainer.innerHTML = `
+    <div class="sinkron-kemajuan"><strong>${selesaiN}/${SINKRON_AWAL}</strong><div class="sinkron-kemajuan__bar"><div class="sinkron-kemajuan__isi" style="width:${Math.round(selesaiN / SINKRON_AWAL * 100)}%"></div></div><span class="teks-lemah">selesai</span></div>
     <p class="teks-lemah sinkron-petunjuk">Stok fisik adalah satu angka untuk semua channel. Barang yang laku di mana pun mengurangi angka yang sama, jadi angka di marketplace lain perlu mengikuti. Buka marketplace-nya, ubah angka sesuai kolom kanan, lalu tekan <strong>Sudah diubah</strong>.</p>
     ${perChannel.map(g => `
       <div class="kartu sinkron-kartu">
@@ -125,6 +157,7 @@ function renderSinkron() {
     konfirmasi(`Yakin <strong>${total} angka</strong> di atas sudah kamu ubah di Shopee / TikTok Shop? Aplikasi akan mencatat semuanya sudah sesuai.`, () => {
       sesuaikanSemuaListing();
       tampilkanToast('Semua angka marketplace dicatat sudah sesuai.', 'sukses');
+      if (window.rayakan) window.rayakan(document.getElementById('btnSesuaikanSemua'));
       renderSinkron();
       renderBanner();
     }, { labelYa: 'Ya, sudah semua' });
