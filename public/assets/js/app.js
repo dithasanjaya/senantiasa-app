@@ -666,7 +666,11 @@ function renderDashboard() {
   KONTEN_STICKY().innerHTML = `
     <div class="halaman-sticky-host__inner">
       <div class="halaman__header">
-        <div><h1>Overview</h1><p>Ringkasan inventory Senantiasa &middot; ${new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p></div>
+        <div class="sapa">
+          <h1>${sapaanWaktu()}</h1>
+          <p>${new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
+          <div class="sapa__ringkas">${htmlRingkasSapaan()}</div>
+        </div>
         ${htmlRangePicker(RENTANG_OVERVIEW)}
       </div>
     </div>
