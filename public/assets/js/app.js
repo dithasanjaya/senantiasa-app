@@ -4,7 +4,7 @@
 const KONTEN = () => document.getElementById('kontenUtama');
 const WARNA = { sorrell: '#C8B37F', sorrellDark: '#8a7442', matisse: '#1C4C94', sienna: '#D47444', siennaDark: '#a8532b', almond: '#ECCCC4', garis: '#EFE3DB' };
 let FILTER_CHANNEL_AWAL = '';
-let FILTER_PRODUK = { kategori: '', koleksi: '', channel: '' };
+let FILTER_PRODUK = { kategori: '', koleksi: '', status: '' };
 let REFRESH_GRID_PRODUK = null;
 let VIEW_PRODUK = 'besar'; // 'list' | 'detail' | 'besar'
 let SORT_PRODUK = ''; // '' (nama A-Z) | 'stok-tinggi' | 'stok-rendah'
@@ -260,9 +260,7 @@ function rentangSebelumnya(dari, sampai) {
   return { dari: sebelumMulai.toISOString().slice(0, 10), sampai: sebelumSampai.toISOString().slice(0, 10) };
 }
 
-function daftarStokMenipis() {
-  return daftarVarianDenganStok().filter(v => v.stok <= (v.produk.stokMinim ?? 3)).sort((a, b) => a.stok - b.stok);
-}
+
 
 // Pintasan "buka Laporan [jenis]" dipakai dari header Produk/Transaksi/Pembukuan & kartu
 // Overview -- pilih tab yg relevan lebih dulu baru pindah halaman (atau render ulang langsung
@@ -301,11 +299,9 @@ const HALAMAN_KHUSUS_PEMILIK = ['pembukuan', 'pembukuan-dinda', 'pembukuan-retro
 function render() {
   const { halaman, param } = ambilRute();
 
-  // Karyawan (bukan pemilik) tidak boleh lihat 3 menu pembukuan -- link sidebar-nya disembunyikan
-  // DI SINI (idempotent, aman dipanggil ulang tiap render), dan kalau nekat ketik hash-nya
-  // langsung di address bar, dialihkan balik ke dashboard drpd halamannya ikut ke-render. Lihat
-  // catatan lengkap di apakahPemilik() (data.js) soal ini cuma pembeda TAMPILAN, bukan keamanan
-  // data sungguhan (dokumen Firestore-nya tetap 1, sama2 bisa dibaca akun mana pun yg login).
+  // Karyawan (bukan pemilik) tidak melihat 3 menu pembukuan: link sidebar disembunyikan di sini dan
+  // hash-nya dialihkan ke dashboard. Itu hanya kerapian tampilan -- penjagaan sungguhan ada di
+  // firestore.rules (koleksi pembukuan & keuangan hanya bisa dibaca pemilik).
   const pemilik = apakahPemilik();
   HALAMAN_KHUSUS_PEMILIK.forEach(kode => {
     const el = document.querySelector(`.nav__item[data-nav="${kode}"]`);
@@ -338,6 +334,8 @@ function render() {
   else if (halaman === 'produk' && param) renderProdukDetail(param);
   else if (halaman === 'produk') renderProdukList();
   else if (halaman === 'transaksi') renderTransaksi();
+  else if (halaman === 'sinkron') renderSinkron();
+  else if (halaman === 'opname') renderOpname();
   else if (halaman === 'pembukuan') renderPembukuan();
   else if (halaman === 'pembukuan-dinda') renderPembukuanWs('dinda');
   else if (halaman === 'pembukuan-retro') renderPembukuanWs('retro');
@@ -428,7 +426,7 @@ function renderSidebarFilterProduk(host) {
 
   host.innerHTML = grupChipFilter('Kategori', 'kategori', kategoriTerpakai(), FILTER_PRODUK)
     + grupChipFilter('Koleksi', 'koleksi', koleksiTerpakai(), FILTER_PRODUK)
-    + grupChipFilter('Channel', 'channel', CHANNEL_LIST, FILTER_PRODUK, true)
+    + grupChipFilter('Status', 'status', ['Perlu disesuaikan', 'Stok menipis', 'Stok habis'], FILTER_PRODUK)
     + tampilanHtml;
   host.querySelectorAll('[data-fkey]').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -604,25 +602,15 @@ document.addEventListener('DOMContentLoaded', () => {
 // ============================================================
 function renderBanner() {
   const host = document.getElementById('bannerHost');
-  const statusEl = document.getElementById('statusBackup');
-  const punyaData = DATA.produk.length > 0 || DATA.transaksi.length > 0;
-  const hari = hariSejakBackupTerakhir();
-
-  if (DATA.pengaturan.lastBackupAt) {
-    statusEl.textContent = 'Cadangan terakhir: ' + formatTanggal(DATA.pengaturan.lastBackupAt);
-    statusEl.classList.toggle('peringatan', hari > BATAS_HARI_PERINGATAN_BACKUP);
-  } else {
-    statusEl.textContent = 'Belum pernah dicadangkan';
-    statusEl.classList.toggle('peringatan', punyaData);
-  }
-
-  if (punyaData && hari > BATAS_HARI_PERINGATAN_BACKUP) {
-    const teksWaktu = DATA.pengaturan.lastBackupAt ? `Sudah ${Math.floor(hari)} hari sejak cadangan data terakhir` : 'Belum pernah mengunduh cadangan data';
+  const jumlah = antrianSinkronSaatIni().length;
+  const nb = document.getElementById('navSinkronCount');
+  if (nb) { nb.hidden = !jumlah; nb.textContent = jumlah > 99 ? '99+' : jumlah; }
+  const { halaman } = ambilRute();
+  if (perluOpname() && halaman !== 'opname') {
     host.innerHTML = `<div class="banner">
-      <span>⚠️ ${teksWaktu}. Data hanya tersimpan di browser ini -- kalau cache terhapus, semua catatan bisa hilang.</span>
-      <button class="link" id="btnBackupDariBanner">Unduh Cadangan Sekarang</button>
+      <span>Stok awal hasil pemindahan data lama masih berupa tebakan. Cocokkan dengan barang yang benar-benar ada supaya angkanya pasti.</span>
+      <a class="link" href="#opname">Hitung Stok sekarang</a>
     </div>`;
-    host.querySelector('#btnBackupDariBanner').onclick = () => { unduhCadangan(); tampilkanToast('Cadangan berhasil diunduh.', 'sukses'); render(); };
   } else {
     host.innerHTML = '';
   }
@@ -700,9 +688,9 @@ function renderDashboard() {
             <div class="stat__label">Total Produk</div>
             <div class="stat__nilai">${totalProduk}</div>
           </div>
-          <div class="stat klik" data-arah="#produk" data-tip="Lihat stok tiap produk">
+          <div class="stat klik" data-arah="#produk" data-tip="Jumlah barang fisik yang ada (satu angka, tidak dijumlah per channel)">
             <div class="stat__top"><div class="stat__icon stat__icon--matisse">${IKON.stack}</div></div>
-            <div class="stat__label">Total Stok</div>
+            <div class="stat__label">Stok Fisik</div>
             <div class="stat__nilai">${totalStok}</div>
           </div>
           <div class="stat klik" data-arah="#laporan" data-tip="Buka Laporan &middot; harga modal &times; stok saat ini">
@@ -711,26 +699,7 @@ function renderDashboard() {
             <div class="stat__nilai">${formatRupiah(nilaiModal)}</div>
           </div>
         </div>
-        <div class="overview-label-kecil">Stok per Channel</div>
-        <div class="grid-3-kecil">
-          ${CHANNEL_LIST.map(c => {
-            const stokC = totalStokChannel(c);
-            const bisaCek = !!CHANNEL_LINK[c];
-            const hari = hariSejakCekStok(c);
-            const sudahCek = bisaCek && isFinite(hari) && hari <= BATAS_HARI_PERINGATAN_CEK_STOK;
-            const teksCek = !bisaCek ? 'Toko fisik' : isFinite(hari) ? `Dicek ${Math.floor(hari)}h lalu` : 'Belum pernah dicek';
-            return `<div class="mini-stat-channel klik" data-arah="#transaksi" data-channel="${c}" data-tip="${escapeHtml(c)}: ${stokC} item &middot; ${escapeHtml(teksCek)}">
-              <div class="mini-stat-channel__top">
-                ${ikonChannel(c)}
-                ${bisaCek ? `<button type="button" class="cek-stok-toggle cek-stok-toggle--kecil ${sudahCek ? 'sudah' : ''}" data-tandai-cek="${c}" data-tip="${sudahCek ? 'Sudah dicek' : 'Tandai sudah dicek hari ini'}">
-                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>
-                </button>` : ''}
-              </div>
-              <div class="mini-stat-channel__nilai">${stokC}</div>
-              <div class="mini-stat-channel__nama">${escapeHtml(c)}</div>
-            </div>`;
-          }).join('')}
-        </div>
+        ${htmlKartuSinkronRingkas()}
         <div class="kartu kartu-kompak kartu-sisa">
           <h2>Stok Menipis</h2>
           ${stokMenipis.length ? `<div class="tabel-wrap"><table><tbody>
@@ -827,19 +796,6 @@ function renderDashboard() {
     </div>
   `;
 
-  KONTEN().querySelectorAll('[data-tandai-cek]').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const c = btn.dataset.tandaiCek;
-      konfirmasi(`Yakin sudah cek stok channel <strong>${escapeHtml(c)}</strong> hari ini?`, () => {
-        tandaiCekStok(c);
-        tampilkanToast(`${c} ditandai sudah dicek.`, 'sukses');
-        renderDashboard();
-      }, { labelYa: 'Ya, sudah dicek' });
-    });
-  });
-
   KONTEN().querySelectorAll('[data-arah]').forEach(el => {
     el.addEventListener('click', (e) => {
       if (e.target.closest('button, a')) return;
@@ -900,7 +856,7 @@ function renderProdukList() {
   KONTEN_STICKY().innerHTML = `
     <div class="halaman-sticky-host__inner">
       <div class="halaman__header">
-        <div><h1>Produk</h1><p>${DATA.produk.length} produk terdaftar${FILTER_PRODUK.kategori || FILTER_PRODUK.koleksi || FILTER_PRODUK.channel ? ' &middot; filter aktif di sidebar' : ''}</p></div>
+        <div><h1>Produk</h1><p>${DATA.produk.length} produk terdaftar${FILTER_PRODUK.kategori || FILTER_PRODUK.koleksi || FILTER_PRODUK.status ? ' &middot; filter aktif di sidebar' : ''}</p></div>
         <div class="halaman__header-aksi">
           ${htmlTombolLaporan('stok', 'Buka Laporan Stok')}
           <button class="btn" id="btnCatatTransaksiProduk" data-tip="Catat barang masuk/keluar tanpa pindah menu">+ Catat Transaksi</button>
@@ -934,12 +890,7 @@ function renderProdukList() {
     if (sisa > 0) html += `<span class="chip-ukuran chip-ukuran--lainnya" data-tip="${sisa} varian lainnya -- klik kartu utk lihat semua">+${sisa} lainnya</span>`;
     return html;
   }
-  function dotChannelHtml(p) {
-    return CHANNEL_LIST.map(c => {
-      const stokC = p.varian.reduce((a, v) => a + hitungStokChannel(p.id, v.id, c), 0);
-      return `<span class="dot-channel ${stokC > 0 ? 'd-' + KELAS_CHANNEL[c] : ''}" data-tip="${escapeHtml(c)}: ${stokC > 0 ? stokC + ' item' : 'stok habis'}"></span>`;
-    }).join('');
-  }
+  function dotChannelHtml(p) { return dotListingHtml(p); }
 
   function kartuBesar(p) {
     const stokP = totalStokProduk(p);
@@ -994,9 +945,7 @@ function renderProdukList() {
       const cocokKata = !kata || p.nama.toLowerCase().includes(kata);
       const cocokKategori = !FILTER_PRODUK.kategori || p.kategori === FILTER_PRODUK.kategori;
       const cocokKoleksi = !FILTER_PRODUK.koleksi || p.koleksi === FILTER_PRODUK.koleksi;
-      const stokPerChannel = FILTER_PRODUK.channel ? p.varian.reduce((a, v) => a + hitungStokChannel(p.id, v.id, FILTER_PRODUK.channel), 0) : null;
-      const cocokChannel = !FILTER_PRODUK.channel || stokPerChannel > 0;
-      return cocokKata && cocokKategori && cocokKoleksi && cocokChannel;
+      return cocokKata && cocokKategori && cocokKoleksi && cocokStatusProduk(p, FILTER_PRODUK.status);
     });
 
     if (SORT_PRODUK === 'stok-tinggi') list = list.slice().sort((a, b) => totalStokProduk(b) - totalStokProduk(a));
@@ -1129,13 +1078,16 @@ function modalFormProduk(id, onSelesai) {
     if (koleksi) tambahKlasifikasi('koleksiList', koleksi);
 
     if (p) {
-      p.nama = nama; p.kategori = kategori; p.koleksi = koleksi; p.stokMinim = stokMinim; p.catatan = catatan; p.foto = fotoSementara;
+      p.nama = nama; p.kategori = kategori; p.koleksi = koleksi; p.stokMinim = stokMinim; p.catatan = catatan;
       p.updatedAt = new Date().toISOString();
+      if ((p.foto || null) !== (fotoSementara || null)) simpanFotoProduk(p.id, fotoSementara);
     } else {
-      DATA.produk.push({
-        id: buatId('prod'), nama, kategori, koleksi, stokMinim, catatan, foto: fotoSementara,
+      const baru = {
+        id: buatId('prod'), nama, kategori, koleksi, stokMinim, catatan, foto: null,
         varian: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
-      });
+      };
+      DATA.produk.push(baru);
+      if (fotoSementara) simpanFotoProduk(baru.id, fotoSementara);
     }
     simpanData();
     tutupModal();
@@ -1151,7 +1103,7 @@ function modalFormProduk(id, onSelesai) {
 // form Transaksi (lihat kelompokkanVarianUntukCombo), supaya ukuran2 dari warna yg sama gampang
 // dibandingkan berdampingan, tanpa nama warna berulang di tiap baris.
 function htmlBarisVarianTerkelompok(p) {
-  if (!p.varian.length) return `<tr><td colspan="5" class="kosong">Belum ada varian. Tambahkan ukuran/warna dulu sebelum mencatat stok.</td></tr>`;
+  if (!p.varian.length) return `<tr><td colspan="7" class="kosong">Belum ada varian. Tambahkan ukuran/warna dulu sebelum mencatat stok.</td></tr>`;
   const grup = new Map();
   p.varian.forEach(v => {
     const kunci = v.warna || '(Tanpa warna)';
@@ -1159,15 +1111,15 @@ function htmlBarisVarianTerkelompok(p) {
     grup.get(kunci).push(v);
   });
   return Array.from(grup.entries()).map(([warna, list]) => `
-    <tr class="tabel-grup-baris"><td colspan="5">${escapeHtml(warna)}</td></tr>
+    <tr class="tabel-grup-baris"><td colspan="7">${escapeHtml(warna)}</td></tr>
     ${list.map(v => `<tr>
       <td>${escapeHtml(v.ukuran || 'Default')}</td>
-      <td class="teks-kanan" data-tip="${CHANNEL_LIST.map(c => c + ': ' + hitungStokChannel(p.id, v.id, c)).join(' &bull; ')}">${hitungStok(p.id, v.id)}</td>
+      <td class="teks-kanan"><strong>${hitungStok(p.id, v.id)}</strong></td>
+      ${CHANNEL_ONLINE.map(c => `<td class="teks-kanan">${htmlSelListing(p, v, c)}</td>`).join('')}
       <td class="teks-kanan">${formatRupiah(v.hargaModal)}</td>
       <td class="teks-kanan">${formatRupiah(v.hargaJual)}${v.hargaChannel && Object.keys(v.hargaChannel).length ? ` <span class="hint" data-tip="Harga custom di ${Object.keys(v.hargaChannel).join(', ')}">✎</span>` : ''}</td>
       <td class="teks-kanan">
         <button class="btn btn-kecil btn-primer" data-catat-varian="${v.id}" data-tip="Catat barang masuk/keluar utk varian ini">+ Catat</button>
-        <button class="btn btn-kecil" data-pindah-varian="${v.id}" data-tip="Pindahkan stok dari satu channel ke channel lain">🔀 Pindah</button>
         <button class="btn btn-kecil btn-ikon" data-edit-varian="${v.id}" data-tip="Edit">${IKON.editKecil}</button>
         <button class="btn btn-kecil btn-ikon btn-bahaya" data-hapus-varian="${v.id}" data-tip="Hapus">${IKON.hapusKecil}</button>
       </td>
@@ -1214,24 +1166,21 @@ function renderProdukDetail(id) {
             }).join('') : `<span class="hint">Belum ada varian.</span>`}
           </div>
           <div class="grid-kartu" style="margin-top:12px">
-            <div class="stat" style="padding:12px 14px" data-tip="Jumlah stok di semua channel"><div class="stat__label">Stok Total</div><div class="stat__nilai">${totalStok}</div></div>
+            <div class="stat" style="padding:12px 14px" data-tip="Jumlah barang fisik yang ada. Penjualan di channel mana pun mengurangi angka yang sama."><div class="stat__label">Stok Fisik</div><div class="stat__nilai">${totalStok}</div></div>
             <div class="stat" style="padding:12px 14px"><div class="stat__label">Harga Jual</div><div class="stat__nilai" style="font-size:16px">${hargaLabel}</div></div>
           </div>
         </div>
         <div class="kartu" style="margin-bottom:0">
-          <h2>Harga &amp; Stok per Channel</h2>
-          <p class="teks-lemah" style="margin-top:-6px">Stok tiap channel dikelola terpisah -- Stok Total di atas otomatis dijumlah dari semua channel di bawah ini.</p>
+          <h2>Harga per Channel</h2>
           <div class="channel-harga-grid">
             ${CHANNEL_LIST.map(c => {
               const hargaC = p.varian.map(v => hargaVarianUntukChannel(v, c)).filter(Boolean);
               const min = hargaC.length ? Math.min(...hargaC) : 0;
               const max = hargaC.length ? Math.max(...hargaC) : 0;
               const label = !hargaC.length ? '-' : (min === max ? formatRupiah(min) : `${formatRupiah(min)} - ${formatRupiah(max)}`);
-              const stokC = p.varian.reduce((a, v) => a + hitungStokChannel(p.id, v.id, c), 0);
               return `<div class="channel-harga-card">
                 ${badgeChannel(c)}
                 <div class="channel-harga-card__harga">${label}</div>
-                <div class="channel-harga-card__stok" style="color:${stokC > 0 ? '' : 'var(--sienna-dark)'}">${stokC > 0 ? stokC + ' item tersedia' : 'Stok habis'}</div>
               </div>`;
             }).join('')}
           </div>
@@ -1244,7 +1193,7 @@ function renderProdukDetail(id) {
         Varian <button class="btn btn-kecil btn-primer" id="btnTambahVarian">+ Tambah Varian</button>
       </h2>
       <div class="tabel-wrap"><table>
-        <thead><tr><th>Ukuran</th><th class="teks-kanan">Stok</th><th class="teks-kanan">Harga Modal</th><th class="teks-kanan">Harga Jual</th><th></th></tr></thead>
+        <thead><tr><th>Ukuran</th><th class="teks-kanan" data-tip="Barang fisik yang ada">Stok</th><th class="teks-kanan" data-tip="Angka yang tertera di Shopee">Shopee</th><th class="teks-kanan" data-tip="Angka yang tertera di TikTok Shop">TikTok</th><th class="teks-kanan">Harga Modal</th><th class="teks-kanan">Harga Jual</th><th></th></tr></thead>
         <tbody>${htmlBarisVarianTerkelompok(p)}</tbody>
       </table></div>
     </div>
@@ -1259,9 +1208,7 @@ function renderProdukDetail(id) {
   KONTEN().querySelector('#btnHapusProduk').addEventListener('click', () => {
     const jumlahTx = DATA.transaksi.filter(t => t.produkId === p.id).length;
     konfirmasi(`Hapus produk <strong>${escapeHtml(p.nama)}</strong> beserta ${p.varian.length} varian${jumlahTx ? ' dan ' + jumlahTx + ' riwayat transaksinya' : ''}? Tindakan ini tidak bisa dibatalkan.`, () => {
-      DATA.produk = DATA.produk.filter(x => x.id !== p.id);
-      DATA.transaksi = DATA.transaksi.filter(t => t.produkId !== p.id);
-      simpanData();
+      hapusProduk(p.id);
       tampilkanToast('Produk dihapus.', 'sukses');
       location.hash = '#produk';
     }, { bahaya: true, labelYa: 'Hapus' });
@@ -1270,9 +1217,7 @@ function renderProdukDetail(id) {
   KONTEN().querySelectorAll('[data-edit-varian]').forEach(btn => {
     btn.addEventListener('click', () => modalFormVarian(p.id, btn.dataset.editVarian, () => renderProdukDetail(p.id)));
   });
-  KONTEN().querySelectorAll('[data-pindah-varian]').forEach(btn => {
-    btn.addEventListener('click', () => modalPindahStok(p.id, btn.dataset.pindahVarian, () => renderProdukDetail(p.id)));
-  });
+  pasangAksiSelListing(() => renderProdukDetail(p.id));
   KONTEN().querySelectorAll('[data-catat-varian]').forEach(btn => {
     btn.addEventListener('click', () => modalCatatStokVarian(p.id, btn.dataset.catatVarian, () => renderProdukDetail(p.id)));
   });
@@ -1281,9 +1226,7 @@ function renderProdukDetail(id) {
       const vId = btn.dataset.hapusVarian;
       const jumlahTx = DATA.transaksi.filter(t => t.produkId === p.id && t.varianId === vId).length;
       konfirmasi(`Hapus varian ini${jumlahTx ? ' beserta ' + jumlahTx + ' riwayat transaksinya' : ''}?`, () => {
-        p.varian = p.varian.filter(v => v.id !== vId);
-        DATA.transaksi = DATA.transaksi.filter(t => !(t.produkId === p.id && t.varianId === vId));
-        simpanData();
+        hapusVarian(p.id, vId);
         tampilkanToast('Varian dihapus.', 'sukses');
         renderProdukDetail(p.id);
       }, { bahaya: true, labelYa: 'Hapus' });
@@ -1329,8 +1272,7 @@ function pasangAksiTabelTransaksiProduk(produkId) {
   kontainer.querySelectorAll('[data-edit-tx]').forEach(btn => btn.addEventListener('click', () => modalFormTransaksi(btn.dataset.editTx, render_ulang)));
   kontainer.querySelectorAll('[data-hapus-tx]').forEach(btn => btn.addEventListener('click', () => {
     konfirmasi('Hapus transaksi ini? Stok akan otomatis dihitung ulang.', () => {
-      DATA.transaksi = DATA.transaksi.filter(t => t.id !== btn.dataset.hapusTx);
-      simpanData();
+      hapusTransaksi(btn.dataset.hapusTx);
       tampilkanToast('Transaksi dihapus.', 'sukses');
       render_ulang();
     }, { bahaya: true, labelYa: 'Hapus' });
@@ -1351,18 +1293,23 @@ function modalFormVarian(produkId, varianId, onSelesai) {
     </div>
 
     <div class="field" style="margin-top:4px">
-      <label>${v ? 'Stok Awal per Channel / Penyesuaian Langsung' : 'Stok Awal per Channel'}</label>
-      ${v ? '<div class="hint" style="margin-top:0;margin-bottom:8px">Ubah angka ini = koreksi diam-diam tanpa tercatat. Untuk koreksi yang tercatat (ada jejaknya), pakai menu Transaksi.</div>' : '<div class="hint" style="margin-top:0;margin-bottom:8px">Stok dikelola terpisah per channel -- total otomatis dijumlah dari semua channel.</div>'}
+      <label>${v ? 'Stok Fisik' : 'Stok Fisik Sekarang'}</label>
+      ${v
+        ? `<div class="hint" style="margin-top:0">Ada <strong>${hitungStok(produkId, varianId)}</strong> pcs. Untuk mengubahnya, catat transaksi (+ Catat) atau pakai menu Hitung Stok, supaya ada jejaknya.</div>`
+        : `<div class="hint" style="margin-top:0;margin-bottom:8px">Berapa pcs barang yang benar-benar ada sekarang. Cukup satu angka, tidak perlu dibagi per channel.</div>
+           <input type="number" id="fStokAwal" min="0" value="0" style="max-width:200px">`}
+    </div>
+
+    <div class="field" style="margin-top:4px">
+      <label>Angka di Marketplace Saat Ini</label>
+      <div class="hint" style="margin-top:0;margin-bottom:8px">Jumlah yang tertera di aplikasi Shopee / TikTok Shop sekarang. Dipakai untuk mengingatkanmu kalau angkanya harus diubah setelah ada penjualan. Boleh dikosongkan kalau belum dijual di sana.</div>
       <div class="field-row">
-        ${CHANNEL_LIST.map(c => `
+        ${CHANNEL_ONLINE.map(c => `
           <div class="field">
             <label style="font-weight:400">${badgeChannel(c)}</label>
-            <input type="number" data-stok-channel="${escapeHtml(c)}" value="${v ? (v.stokAwal[c] || 0) : 0}">
-            ${v ? `<div class="hint">Stok kini: ${hitungStokChannel(produkId, varianId, c)}</div>` : ''}
-          </div>
-        `).join('')}
+            <input type="number" min="0" data-listing="${escapeHtml(c)}" value="${v && listingVarian(varianId, c) !== null ? listingVarian(varianId, c) : ''}" placeholder="${v ? '' : 'Sama dgn stok fisik'}">
+          </div>`).join('')}
       </div>
-      ${v ? `<p class="hint">Total stok semua channel saat ini: <strong>${hitungStok(produkId, varianId)}</strong></p>` : ''}
     </div>
 
     <div class="field" style="margin-top:4px">
@@ -1390,102 +1337,33 @@ function modalFormVarian(produkId, varianId, onSelesai) {
     const warna = modal.querySelector('#fWarna').value.trim();
     const hargaModal = Number(modal.querySelector('#fHargaModal').value) || 0;
     const hargaJual = Number(modal.querySelector('#fHargaJual').value) || 0;
-    const stokAwal = {};
-    CHANNEL_LIST.forEach(c => { stokAwal[c] = Number(modal.querySelector(`[data-stok-channel="${c}"]`).value) || 0; });
     const hargaChannel = {};
     CHANNEL_LIST.forEach(c => {
       const val = modal.querySelector(`[data-harga-channel="${c}"]`).value.trim();
       if (val !== '') hargaChannel[c] = Number(val);
     });
+    const listingBaru = {};
+    CHANNEL_ONLINE.forEach(c => {
+      const val = modal.querySelector(`[data-listing="${c}"]`).value.trim();
+      if (val !== '') listingBaru[c] = Math.max(0, Math.round(Number(val) || 0));
+    });
 
     if (v) {
-      v.ukuran = ukuran; v.warna = warna; v.stokAwal = stokAwal; v.hargaModal = hargaModal; v.hargaJual = hargaJual; v.hargaChannel = hargaChannel;
+      v.ukuran = ukuran; v.warna = warna; v.hargaModal = hargaModal; v.hargaJual = hargaJual; v.hargaChannel = hargaChannel;
+      CHANNEL_ONLINE.forEach(c => {
+        if (listingBaru[c] !== undefined && listingBaru[c] !== listingVarian(v.id, c)) aturListing(p.id, v.id, c, listingBaru[c]);
+      });
+      p.updatedAt = new Date().toISOString();
+      simpanData();
     } else {
-      p.varian.push({ id: buatId('var'), ukuran, warna, stokAwal, hargaModal, hargaJual, hargaChannel });
+      const stokAwal = Math.max(0, Math.round(Number(modal.querySelector('#fStokAwal').value) || 0));
+      const listingAwal = {};
+      CHANNEL_ONLINE.forEach(c => { listingAwal[c] = listingBaru[c] !== undefined ? listingBaru[c] : stokAwal; });
+      p.updatedAt = new Date().toISOString();
+      tambahVarianBaru(p, { id: buatId('var'), ukuran, warna, stokAwal, hargaModal, hargaJual, hargaChannel }, listingAwal);
     }
-    p.updatedAt = new Date().toISOString();
-    simpanData();
     tutupModal();
     tampilkanToast('Varian disimpan.', 'sukses');
-    if (onSelesai) onSelesai();
-  });
-}
-
-// Pindah stok satu varian dari satu channel ke channel lain (mis. Tokopedia sisa 2 tapi
-// yg laku di Shopee & Shopee-nya kosong) -- dicatat sbg sepasang transaksi "Koreksi" yg
-// saling terkait (satu minus di channel asal, satu plus di channel tujuan) supaya tetap
-// ada jejaknya di riwayat, tanpa perlu tipe transaksi baru.
-function modalPindahStok(produkId, varianId, onSelesai) {
-  const p = cariProduk(produkId);
-  const v = cariVarian(produkId, varianId);
-  if (!p || !v) return;
-
-  const modal = bukaModal('Pindah Stok Antar Channel', `
-    <p class="hint" style="margin-top:-4px">${escapeHtml(p.nama)}${v.ukuran || v.warna ? ' &middot; ' + escapeHtml(labelVarian(v)) : ''}</p>
-    <div class="field-row">
-      <div class="field">
-        <label>Dari Channel</label>
-        <select id="fDariChannel">${CHANNEL_LIST.map(c => `<option value="${c}">${c} (stok: ${hitungStokChannel(produkId, varianId, c)})</option>`).join('')}</select>
-      </div>
-      <div class="field">
-        <label>Ke Channel</label>
-        <select id="fKeChannel">${CHANNEL_LIST.map(c => `<option value="${c}">${c} (stok: ${hitungStokChannel(produkId, varianId, c)})</option>`).join('')}</select>
-      </div>
-    </div>
-    <div class="field">
-      <label>Jumlah Dipindah</label>
-      <input type="number" id="fJumlahPindah" min="1" value="1">
-      <div class="hint" id="hintPindah"></div>
-    </div>
-    <div class="field"><label>Catatan (opsional)</label><input type="text" id="fCatatanPindah" placeholder="Contoh: dialokasikan ulang krn laku duluan di channel lain"></div>
-    <div class="modal__aksi">
-      <button class="btn" id="btnBatal">Batal</button>
-      <button class="btn btn-primer" id="btnSimpan">🔀 Pindahkan</button>
-    </div>
-  `);
-
-  const selDari = modal.querySelector('#fDariChannel');
-  const selKe = modal.querySelector('#fKeChannel');
-  selKe.value = CHANNEL_LIST.find(c => c !== selDari.value) || CHANNEL_LIST[0];
-
-  function perbaruiHint() {
-    modal.querySelector('#hintPindah').textContent = `Stok ${selDari.value} saat ini: ${hitungStokChannel(produkId, varianId, selDari.value)} item`;
-  }
-  perbaruiHint();
-  selDari.addEventListener('change', () => {
-    if (selDari.value === selKe.value) selKe.value = CHANNEL_LIST.find(c => c !== selDari.value);
-    perbaruiHint();
-  });
-  selKe.addEventListener('change', () => {
-    if (selKe.value === selDari.value) {
-      tampilkanToast('Channel tujuan harus beda dari channel asal.', 'error');
-      selKe.value = CHANNEL_LIST.find(c => c !== selDari.value);
-    }
-  });
-
-  modal.querySelector('#btnBatal').addEventListener('click', tutupModal);
-  modal.querySelector('#btnSimpan').addEventListener('click', () => {
-    const dari = selDari.value;
-    const ke = selKe.value;
-    const jumlah = Number(modal.querySelector('#fJumlahPindah').value);
-    const catatan = modal.querySelector('#fCatatanPindah').value.trim();
-
-    if (dari === ke) { tampilkanToast('Channel asal & tujuan harus berbeda.', 'error'); return; }
-    if (!jumlah || jumlah <= 0) { tampilkanToast('Jumlah harus lebih dari 0.', 'error'); return; }
-
-    const stokDari = hitungStokChannel(produkId, varianId, dari);
-    if (jumlah > stokDari) {
-      tampilkanToast(`Stok ${dari} cuma ${stokDari}, tidak bisa memindah ${jumlah}.`, 'error');
-      return;
-    }
-
-    const tanggal = tanggalHariIni();
-    const keterangan = catatan ? ` -- ${catatan}` : '';
-    DATA.transaksi.push({ id: buatId('tx'), tipe: 'koreksi', produkId, varianId, channel: dari, qty: -jumlah, hargaSatuan: 0, catatan: `Pindah ${jumlah} ke ${ke}${keterangan}`, tanggal, createdAt: new Date().toISOString() });
-    DATA.transaksi.push({ id: buatId('tx'), tipe: 'koreksi', produkId, varianId, channel: ke, qty: jumlah, hargaSatuan: 0, catatan: `Pindah ${jumlah} dari ${dari}${keterangan}`, tanggal, createdAt: new Date().toISOString() });
-    simpanData();
-    tutupModal();
-    tampilkanToast(`${jumlah} item dipindah dari ${dari} ke ${ke}.`, 'sukses');
     if (onSelesai) onSelesai();
   });
 }
@@ -1494,93 +1372,7 @@ function modalPindahStok(produkId, varianId, onSelesai) {
 // produk & varian sudah pasti (dari baris yg diklik), jadi TIDAK perlu dropdown pilih
 // produk/varian lagi spy tidak redundan dgn form lengkap di menu Transaksi.
 function modalCatatStokVarian(produkId, varianId, onSelesai) {
-  const p = cariProduk(produkId);
-  const v = cariVarian(produkId, varianId);
-  if (!p || !v) return;
-
-  const modal = bukaModal('Catat Transaksi', `
-    <p class="hint" style="margin-top:-4px">${escapeHtml(p.nama)} &middot; ${escapeHtml(labelVarian(v))}</p>
-    <div class="field-row">
-      <div class="field">
-        <label>Tipe</label>
-        <select id="fTipeV">
-          <option value="masuk">Masuk (Restock)</option>
-          <option value="keluar">Keluar (Terjual)</option>
-          <option value="koreksi">Penyesuaian (Koreksi/Retur/Rusak)</option>
-        </select>
-      </div>
-      <div class="field"><label>Tanggal</label><input type="date" id="fTanggalV" value="${tanggalHariIni()}"></div>
-    </div>
-    <div class="field">
-      <label id="labelChannelV">Channel</label>
-      <select id="fChannelV">${CHANNEL_LIST.map(c => `<option value="${c}">${c}</option>`).join('')}</select>
-    </div>
-    <div class="field-row">
-      <div class="field">
-        <label id="labelQtyV">Jumlah</label>
-        <input type="number" id="fQtyV" value="1" min="0">
-        <div class="hint" id="hintStokV"></div>
-      </div>
-      <div class="field"><label>Harga Satuan (opsional)</label><input type="number" id="fHargaV" placeholder="0"></div>
-    </div>
-    <div class="field"><label>Catatan (opsional)</label><input type="text" id="fCatatanV" placeholder="Contoh: retur ukuran salah"></div>
-    <div class="modal__aksi">
-      <button class="btn" id="btnBatal">Batal</button>
-      <button class="btn btn-primer" id="btnSimpan">Simpan</button>
-    </div>
-  `);
-
-  const selTipe = modal.querySelector('#fTipeV');
-  const selChannel = modal.querySelector('#fChannelV');
-  const labelQty = modal.querySelector('#labelQtyV');
-
-  function saranHarga() {
-    if (selTipe.value !== 'keluar') return;
-    const harga = hargaVarianUntukChannel(v, selChannel.value);
-    modal.querySelector('#fHargaV').value = harga || '';
-  }
-  function perbaruiHint() {
-    const stokC = hitungStokChannel(produkId, varianId, selChannel.value);
-    modal.querySelector('#hintStokV').textContent = `Stok ${selChannel.value} saat ini: ${stokC} item`;
-  }
-  function terapkanTipe() {
-    const tipe = selTipe.value;
-    modal.querySelector('#labelChannelV').textContent = tipe === 'keluar' ? 'Channel Penjualan' : (tipe === 'masuk' ? 'Channel Tujuan Restock' : 'Channel yang Dikoreksi');
-    labelQty.textContent = tipe === 'koreksi' ? 'Perubahan Stok (boleh minus, cth: -2)' : 'Jumlah';
-    modal.querySelector('#fQtyV').min = tipe === 'koreksi' ? '' : '0';
-    saranHarga();
-    perbaruiHint();
-  }
-  selTipe.addEventListener('change', terapkanTipe);
-  selChannel.addEventListener('change', () => { saranHarga(); perbaruiHint(); });
-  terapkanTipe();
-
-  modal.querySelector('#btnBatal').addEventListener('click', tutupModal);
-  modal.querySelector('#btnSimpan').addEventListener('click', () => {
-    const tipe = selTipe.value;
-    let qty = Number(modal.querySelector('#fQtyV').value);
-    if (tipe !== 'koreksi') qty = Math.abs(qty);
-    if (!qty && tipe !== 'koreksi') { tampilkanToast('Jumlah harus lebih dari 0.', 'error'); return; }
-    const tanggal = modal.querySelector('#fTanggalV').value || tanggalHariIni();
-    const channel = selChannel.value;
-    const hargaSatuan = Number(modal.querySelector('#fHargaV').value) || 0;
-    const catatan = modal.querySelector('#fCatatanV').value.trim();
-
-    if (tipe === 'keluar' || (tipe === 'koreksi' && qty < 0)) {
-      const stokChannelSaatIni = hitungStokChannel(produkId, varianId, channel);
-      const dampak = tipe === 'keluar' ? qty : -qty;
-      if (dampak > stokChannelSaatIni) {
-        tampilkanToast(`Stok ${channel} tidak cukup -- tersisa ${stokChannelSaatIni}, transaksi ini butuh ${dampak}.`, 'error');
-        return;
-      }
-    }
-
-    DATA.transaksi.push({ id: buatId('tx'), tipe, produkId, varianId, channel, qty, hargaSatuan, catatan, tanggal, createdAt: new Date().toISOString() });
-    simpanData();
-    tutupModal();
-    tampilkanToast('Transaksi disimpan.', 'sukses');
-    if (onSelesai) onSelesai();
-  });
+  modalFormTransaksi(null, onSelesai, produkId, varianId);
 }
 
 // ============================================================
@@ -1654,8 +1446,7 @@ function renderTransaksi() {
     tbody.querySelectorAll('[data-edit-tx]').forEach(btn => btn.addEventListener('click', () => modalFormTransaksi(btn.dataset.editTx, gambarUlang)));
     tbody.querySelectorAll('[data-hapus-tx]').forEach(btn => btn.addEventListener('click', () => {
       konfirmasi('Hapus transaksi ini? Stok akan otomatis dihitung ulang.', () => {
-        DATA.transaksi = DATA.transaksi.filter(t => t.id !== btn.dataset.hapusTx);
-        simpanData();
+        hapusTransaksi(btn.dataset.hapusTx);
         tampilkanToast('Transaksi dihapus.', 'sukses');
         gambarUlang();
       }, { bahaya: true, labelYa: 'Hapus' });
@@ -1670,7 +1461,7 @@ function renderTransaksi() {
   pasangHeaderSticky();
 }
 
-function modalFormTransaksi(id, onSelesai, produkIdAwal) {
+function modalFormTransaksi(id, onSelesai, produkIdAwal, varianIdAwal) {
   const t = id ? DATA.transaksi.find(x => x.id === id) : null;
 
   const modal = bukaModal(t ? 'Edit Transaksi' : 'Tambah Transaksi', `
@@ -1693,8 +1484,9 @@ function modalFormTransaksi(id, onSelesai, produkIdAwal) {
       <div class="field"><label>Varian</label><div id="fVarian"></div></div>
     </div>
     <div class="field" id="wrapChannel">
-      <label id="labelChannel">Channel</label>
+      <label id="labelChannel">Terjual di</label>
       <select id="fChannel">${CHANNEL_LIST.map(c => `<option value="${c}">${c}</option>`).join('')}</select>
+      <div class="hint">Barang yang laku di channel mana pun mengurangi stok fisik yang sama.</div>
     </div>
     <div class="field-row">
       <div class="field">
@@ -1737,7 +1529,7 @@ function modalFormTransaksi(id, onSelesai, produkIdAwal) {
       label: escapeHtml(warna),
       items: list.map(v => ({
         value: v.id,
-        label: `${escapeHtml(v.ukuran || 'Default')} <span class="teks-lemah" style="font-size:11px">(total: ${hitungStok(produkId, v.id)})</span>`
+        label: `${escapeHtml(v.ukuran || 'Default')} <span class="teks-lemah" style="font-size:11px">(stok: ${hitungStok(produkId, v.id)})</span>`
       }))
     }));
   }
@@ -1746,28 +1538,26 @@ function modalFormTransaksi(id, onSelesai, produkIdAwal) {
   // kalau ikut muncul di dropdown (lihat screenshot user: banyak opsi "(total: 0)" bercampur).
   // Difilter otomatis supaya yg kelihatan cuma yg BENERAN bisa dijual -- kecuali produk/varian
   // yg sedang diedit (t), itu tetap harus muncul walau stoknya skrg pas 0 spy form edit tdk rusak.
-  function produkPunyaStok(p, channel) {
-    return p.varian.some(v => hitungStokChannel(p.id, v.id, channel) > 0);
+  function produkPunyaStok(p) {
+    return p.varian.some(v => hitungStok(p.id, v.id) > 0);
   }
   function isiProduk(pilihProdukId) {
     const tipe = selTipe.value;
-    const channel = selChannel.value;
     let daftar = DATA.produk;
     if (tipe === 'keluar') {
-      daftar = DATA.produk.filter(p => produkPunyaStok(p, channel) || (t && t.produkId === p.id));
+      daftar = DATA.produk.filter(p => produkPunyaStok(p) || (t && t.produkId === p.id) || p.id === produkIdAwal);
     }
     selProduk.innerHTML = daftar.length
       ? daftar.map(p => `<option value="${p.id}">${escapeHtml(p.nama)}</option>`).join('')
-      : `<option value="">Tidak ada produk dgn stok di channel ini</option>`;
+      : `<option value="">Tidak ada produk yang stoknya tersedia</option>`;
     if (pilihProdukId && daftar.some(p => p.id === pilihProdukId)) selProduk.value = pilihProdukId;
   }
   function isiVarian(produkId, pilihVarianId) {
     const p = cariProduk(produkId);
     const tipe = selTipe.value;
-    const channel = selChannel.value;
     let daftarVarian = p ? p.varian : [];
     if (tipe === 'keluar') {
-      daftarVarian = daftarVarian.filter(v => hitungStokChannel(produkId, v.id, channel) > 0 || (t && t.varianId === v.id));
+      daftarVarian = daftarVarian.filter(v => hitungStok(produkId, v.id) > 0 || (t && t.varianId === v.id) || v.id === varianIdAwal);
     }
     comboVarian.setDaftar(kelompokkanVarianUntukCombo(produkId, daftarVarian));
     if (pilihVarianId) comboVarian.setNilai(pilihVarianId);
@@ -1785,8 +1575,8 @@ function modalFormTransaksi(id, onSelesai, produkIdAwal) {
   }
   function terapkanTipe() {
     const tipe = selTipe.value;
-    const labelChannel = modal.querySelector('#labelChannel');
-    labelChannel.textContent = tipe === 'keluar' ? 'Channel Penjualan' : (tipe === 'masuk' ? 'Channel Tujuan Restock' : 'Channel yang Dikoreksi');
+    // Channel hanya bermakna untuk PENJUALAN. Restock & koreksi mengubah satu stok fisik yang sama.
+    modal.querySelector('#wrapChannel').style.display = tipe === 'keluar' ? '' : 'none';
     labelQty.textContent = tipe === 'koreksi' ? 'Perubahan Stok (boleh minus, cth: -2)' : 'Jumlah';
     modal.querySelector('#fQty').min = tipe === 'koreksi' ? '' : '0';
     terapkanFilterKetersediaan();
@@ -1805,15 +1595,13 @@ function modalFormTransaksi(id, onSelesai, produkIdAwal) {
   }
   function perbaruiHintStok() {
     const produkId = selProduk.value, varianId = comboVarian.getNilai();
-    const channel = modal.querySelector('#fChannel').value;
     if (!produkId || !varianId) { modal.querySelector('#hintStokChannel').textContent = ''; return; }
-    const stokC = hitungStokChannel(produkId, varianId, channel);
-    modal.querySelector('#hintStokChannel').textContent = `Stok ${channel} saat ini: ${stokC} item`;
+    modal.querySelector('#hintStokChannel').textContent = `Stok fisik saat ini: ${hitungStok(produkId, varianId)} item`;
   }
 
   selProduk.addEventListener('change', () => { isiVarian(selProduk.value, null); saranHarga(); perbaruiHintStok(); });
   comboVarian.onUbah(() => { saranHarga(); perbaruiHintStok(); });
-  selChannel.addEventListener('change', () => { terapkanFilterKetersediaan(); saranHarga(); perbaruiHintStok(); });
+  selChannel.addEventListener('change', () => { saranHarga(); perbaruiHintStok(); });
   selTipe.addEventListener('change', terapkanTipe);
 
   if (t) {
@@ -1824,7 +1612,7 @@ function modalFormTransaksi(id, onSelesai, produkIdAwal) {
     modal.querySelector('#fQty').value = t.qty;
   } else if (DATA.produk.length) {
     if (produkIdAwal && cariProduk(produkIdAwal)) selProduk.value = produkIdAwal;
-    isiVarian(selProduk.value, null);
+    isiVarian(selProduk.value, varianIdAwal || null);
   }
   terapkanTipe();
 
@@ -1838,29 +1626,37 @@ function modalFormTransaksi(id, onSelesai, produkIdAwal) {
     if (tipe !== 'koreksi') qty = Math.abs(qty);
     if (!qty && tipe !== 'koreksi') { tampilkanToast('Jumlah harus lebih dari 0.', 'error'); return; }
     const tanggal = modal.querySelector('#fTanggal').value || tanggalHariIni();
-    const channel = modal.querySelector('#fChannel').value;
+    const channelPilih = modal.querySelector('#fChannel').value;
     const hargaSatuan = Number(modal.querySelector('#fHarga').value) || 0;
     const catatan = modal.querySelector('#fCatatanTx').value.trim();
 
+    const channel = tipe === 'keluar' ? channelPilih : (t && t.channel) || 'Toko';
+
+    function simpanTransaksi() {
+      let tersimpan;
+      if (t) {
+        ubahTransaksi(t.id, { tipe, produkId, varianId, channel, qty, hargaSatuan, catatan, tanggal });
+        tersimpan = t;
+      } else {
+        tersimpan = tambahTransaksi({ tipe, produkId, varianId, channel, qty, hargaSatuan, catatan, tanggal });
+      }
+      tutupModal();
+      tampilkanToast(pesanSetelahTransaksi(produkId, varianId), 'sukses');
+      if (onSelesai) onSelesai();
+      else render();
+    }
+
     if (tipe === 'keluar' || (tipe === 'koreksi' && qty < 0)) {
-      const efekLama = (t && t.produkId === produkId && t.varianId === varianId && t.channel === channel) ? -efekTransaksi(t) : 0;
-      const stokChannelSaatIni = hitungStokChannel(produkId, varianId, channel) + efekLama;
+      const efekLama = (t && t.varianId === varianId) ? -efekStok(t) : 0;
+      const stokSaatIni = hitungStok(produkId, varianId) + efekLama;
       const dampak = tipe === 'keluar' ? qty : -qty;
-      if (dampak > stokChannelSaatIni) {
-        tampilkanToast(`Stok ${channel} tidak cukup -- tersisa ${stokChannelSaatIni}, transaksi ini butuh ${dampak}. Perbaiki jumlah atau channel-nya.`, 'error');
+      if (dampak > stokSaatIni) {
+        konfirmasi(`Stok fisik yang tercatat tinggal <strong>${stokSaatIni}</strong>, sedangkan transaksi ini butuh <strong>${dampak}</strong>. Stok akan jadi minus. Mungkin ada restock yang belum dicatat. Tetap catat?`,
+          simpanTransaksi, { labelYa: 'Tetap catat' });
         return;
       }
     }
-
-    if (t) {
-      Object.assign(t, { tipe, produkId, varianId, channel, qty, hargaSatuan, catatan, tanggal });
-    } else {
-      DATA.transaksi.push({ id: buatId('tx'), tipe, produkId, varianId, channel, qty, hargaSatuan, catatan, tanggal, createdAt: new Date().toISOString() });
-    }
-    simpanData();
-    tutupModal();
-    tampilkanToast('Transaksi disimpan.', 'sukses');
-    if (onSelesai) onSelesai();
+    simpanTransaksi();
   });
 }
 
@@ -2567,37 +2363,38 @@ function htmlLaporanStok() {
   const totalStok = baris.reduce((a, x) => a + x.stok, 0);
   const totalModal = baris.reduce((a, x) => a + x.stok * (x.v.hargaModal || 0), 0);
   const menipis = baris.filter(x => x.stok <= (x.p.stokMinim ?? 3));
-  const kolomKosong = 3 + CHANNEL_LIST.length + 2;
+  const kolomKosong = 3 + CHANNEL_ONLINE.length + 2;
 
   return `<div class="laporan-kertas">
     ${htmlKopLaporan('Laporan Stok', 'Snapshot per ' + formatTanggal(tanggalHariIni()))}
     <div class="laporan-ringkas">
       <div><span>Total Produk</span><strong>${DATA.produk.length}</strong></div>
       <div><span>Total Varian</span><strong>${baris.length}</strong></div>
-      <div><span>Total Stok</span><strong>${totalStok} item</strong></div>
+      <div><span>Stok Fisik</span><strong>${totalStok} item</strong></div>
       <div><span>Nilai Stok (Modal)</span><strong>${formatRupiah(totalModal)}</strong></div>
       <div><span>Varian Stok Menipis</span><strong${menipis.length ? ' style="color:var(--sienna-dark)"' : ''}>${menipis.length}</strong></div>
     </div>
     <div class="laporan-tabel-wrap"><table class="laporan-tabel">
       <thead><tr>
         <th>Produk</th><th>Kategori</th><th>Varian</th>
-        ${CHANNEL_LIST.map(c => `<th class="teks-tengah laporan-th-channel" data-tip="${escapeHtml(c)}">${ikonChannel(c)}</th>`).join('')}
-        <th class="teks-kanan">Stok Total</th><th class="teks-kanan">Nilai Modal</th>
+        <th class="teks-kanan">Stok Fisik</th>
+        ${CHANNEL_ONLINE.map(c => `<th class="teks-tengah laporan-th-channel" data-tip="Angka yang tertera di ${escapeHtml(c)}">${ikonChannel(c)}</th>`).join('')}
+        <th class="teks-kanan">Nilai Modal</th>
       </tr></thead>
       <tbody>
         ${baris.length ? baris.map(x => `<tr class="${x.stok <= (x.p.stokMinim ?? 3) ? 'laporan-baris-rendah' : ''}">
           <td>${escapeHtml(x.p.nama)}</td>
           <td>${escapeHtml(x.p.kategori || '-')}</td>
           <td>${escapeHtml(labelVarian(x.v))}</td>
-          ${CHANNEL_LIST.map(c => `<td class="teks-tengah">${hitungStokChannel(x.p.id, x.v.id, c)}</td>`).join('')}
           <td class="teks-kanan"><strong>${x.stok}</strong></td>
+          ${CHANNEL_ONLINE.map(c => { const l = listingVarian(x.v.id, c); return `<td class="teks-tengah${l !== Math.max(0, x.stok) ? ' laporan-sel-beda' : ''}">${l === null ? '-' : l}</td>`; }).join('')}
           <td class="teks-kanan">${formatRupiah(x.stok * (x.v.hargaModal || 0))}</td>
         </tr>`).join('') : `<tr><td colspan="${kolomKosong}" class="kosong">Belum ada produk/varian.</td></tr>`}
       </tbody>
       ${baris.length ? `<tfoot><tr>
         <td colspan="3" class="teks-kanan"><strong>Total</strong></td>
-        ${CHANNEL_LIST.map(c => `<td class="teks-tengah"><strong>${totalStokChannel(c)}</strong></td>`).join('')}
         <td class="teks-kanan"><strong>${totalStok}</strong></td>
+        ${CHANNEL_ONLINE.map(c => `<td class="teks-tengah"><strong>${baris.reduce((a, x) => a + (listingVarian(x.v.id, c) || 0), 0)}</strong></td>`).join('')}
         <td class="teks-kanan"><strong>${formatRupiah(totalModal)}</strong></td>
       </tr></tfoot>` : ''}
     </table></div>
@@ -2836,28 +2633,28 @@ function daftarGrupPengaturan() {
     {
       kode: 'data',
       ikon: IKON.wallet,
-      judul: 'Data & Cadangan',
-      ringkas: () => `${DATA.produk.length} produk &middot; ${DATA.transaksi.length} transaksi &middot; cadangan terakhir ${DATA.pengaturan.lastBackupAt ? formatTanggalWaktu(DATA.pengaturan.lastBackupAt) : 'belum pernah'}`,
+      judul: 'Data & Akses',
+      ringkas: () => `${DATA.produk.length} produk &middot; ${DATA.transaksi.length} transaksi &middot; tersimpan online`,
       html: () => `
         <div class="pengaturan-seksi">
-          <p>${DATA.produk.length} produk &middot; ${DATA.produk.reduce((a, p) => a + p.varian.length, 0)} varian &middot; ${DATA.transaksi.length} transaksi &middot; perkiraan ukuran data: ${perkiraanUkuranData()}</p>
-          <p class="teks-lemah">Cadangan terakhir: ${DATA.pengaturan.lastBackupAt ? formatTanggalWaktu(DATA.pengaturan.lastBackupAt) : 'Belum pernah'}</p>
+          <p>${DATA.produk.length} produk &middot; ${DATA.produk.reduce((a, p) => a + p.varian.length, 0)} varian &middot; ${DATA.transaksi.length} transaksi</p>
+          <p class="teks-lemah">Semua data tersimpan online (Firebase) dan otomatis sama di semua perangkat yang masuk dengan akun Senantiasa. Tidak perlu unduh cadangan. Kalau internet putus, catatan yang kamu buat disimpan dulu di perangkat lalu dikirim sendiri begitu online lagi.</p>
+          ${DATA.meta.migrasi && DATA.meta.migrasi.sumber && DATA.meta.migrasi.at ? `<p class="hint">Data dipindahkan dari sistem lama pada ${formatTanggalWaktu(DATA.meta.migrasi.at)}.</p>` : ''}
+        </div>
+        ${apakahPemilik() ? `<div class="pengaturan-seksi">
+          <h3>Akses Karyawan</h3>
+          <p class="teks-lemah">Akun karyawan hanya bisa membuka stok, produk, dan transaksi. Pembukuan hanya bisa dibuka akun pemilik (dijaga di server, bukan sekadar disembunyikan). Tambah atau hapus akun karyawan lewat Firebase Console, Authentication, Users. Pastikan juga opsi pendaftaran mandiri dimatikan (Authentication, Settings, User actions) supaya orang asing tidak bisa membuat akun sendiri.</p>
         </div>
         <div class="pengaturan-seksi">
-          <h3>⬇ Unduh Cadangan Data</h3>
-          <p class="teks-lemah">Data hanya tersimpan di browser ini (tidak ada server/internet). Unduh cadangan rutin (disarankan tiap minggu) dan simpan salinannya di Google Drive, email, atau USB.</p>
-          <button class="btn btn-primer" id="btnBackup" data-tip="Unduh file .json ke folder Downloads">Unduh Cadangan Sekarang</button>
-        </div>
+          <h3>Salinan Data (opsional)</h3>
+          <p class="teks-lemah">Hanya kalau kamu ingin menyimpan arsip pribadi. Tidak ada kewajiban atau pengingat. Foto produk tidak ikut diunduh.</p>
+          <button class="btn" id="btnBackup" data-tip="Unduh file .json ke folder Downloads">Unduh Salinan</button>
+        </div>` : ''}
         <div class="pengaturan-seksi">
-          <h3>⬆ Pulihkan dari Cadangan</h3>
-          <p class="teks-lemah">Memilih file cadangan akan <strong>menggantikan seluruh data saat ini</strong>. Pastikan sudah unduh cadangan data saat ini dulu kalau perlu.</p>
-          <input type="file" id="fRestore" accept="application/json" data-tip="Data saat ini akan digantikan">
-        </div>
-        <div class="pengaturan-seksi">
-          <h3>📲 Instal sebagai Aplikasi</h3>
-          <p class="teks-lemah">Kalau dibuka lewat server/hosting (bukan dobel-klik file langsung), Senantiasa bisa diinstal jadi aplikasi mandiri dgn ikon sendiri di komputer/HP -- tidak perlu buka tab browser lagi tiap kali. Tombol di bawah cuma muncul kalau browser mendeteksi app ini sudah memenuhi syarat instal.</p>
+          <h3>Instal sebagai Aplikasi</h3>
+          <p class="teks-lemah">Senantiasa bisa diinstal jadi aplikasi dengan ikon sendiri di komputer/HP, tanpa perlu membuka tab browser. Tombol di bawah hanya muncul kalau browser mendeteksi aplikasi memenuhi syarat instal.</p>
           <button class="btn btn-primer" id="btnInstalPWA" ${PWA_DEFERRED_PROMPT ? '' : 'hidden'}>Instal Aplikasi</button>
-          <p class="hint">Pakai iPhone/iPad (Safari)? Tombol di atas memang tidak akan pernah muncul -- Safari tidak punya fitur ini. Instal manual: ketuk ikon <strong>Share/Bagikan</strong> (kotak dgn panah ke atas) di bar Safari, lalu pilih <strong>"Add to Home Screen" / "Tambah ke Layar Utama"</strong>.</p>
+          <p class="hint">Pakai iPhone/iPad (Safari)? Ketuk ikon <strong>Share/Bagikan</strong> di bar Safari, lalu pilih <strong>"Tambah ke Layar Utama"</strong>.</p>
         </div>`
     },
     {
@@ -2929,7 +2726,7 @@ function daftarGrupPengaturan() {
       ringkas: () => `${CHANNEL_LIST.length} channel terhubung`,
       html: () => `
         <div class="pengaturan-seksi">
-          <p class="teks-lemah">Tautan pintasan saja (tidak ada koneksi/sinkron data) -- dipakai untuk cek stok manual di menu Overview.</p>
+          <p class="teks-lemah">Tautan pintasan ke toko online (tidak ada koneksi otomatis ke marketplace) -- dipakai dari daftar Sinkron Marketplace untuk membuka toko lalu mengubah angka stok.</p>
           <div class="link-toko-baris"><span>${badgeChannel('Toko')}</span><a class="btn btn-kecil" href="${LOKASI_TOKO_MAPS}" target="_blank" rel="noopener">Lihat Lokasi (Google Maps) ↗</a></div>
           ${CHANNEL_LIST.filter(c => c !== 'Toko').map(c => `<div class="link-toko-baris"><span>${badgeChannel(c)}</span><a class="btn btn-kecil" href="${CHANNEL_LINK[c]}" target="_blank" rel="noopener">Buka Toko ↗</a></div>`).join('')}
         </div>`
@@ -2939,10 +2736,10 @@ function daftarGrupPengaturan() {
       ikon: IKON.peringatan,
       judul: 'Zona Berbahaya',
       bahaya: true,
-      ringkas: () => 'Hapus permanen semua produk, varian & transaksi',
+      ringkas: () => 'Hapus permanen semua produk, varian, transaksi & pembukuan',
       html: () => `
         <div class="pengaturan-seksi">
-          <p class="teks-lemah">Mengosongkan seluruh produk, varian, dan transaksi. Tidak bisa dibatalkan kecuali punya file cadangan.</p>
+          <p class="teks-lemah">Mengosongkan seluruh produk, varian, transaksi, dan pembukuan dari server. Tidak bisa dibatalkan.</p>
           <button class="btn btn-bahaya" id="btnReset" data-tip="Tindakan permanen, tidak bisa di-undo">Hapus Semua Data</button>
         </div>`
     }
@@ -3079,24 +2876,15 @@ function renderPengaturan() {
     renderPengaturan();
   });
 
-  kontainer.querySelector('#fRestore')?.addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    konfirmasi('Yakin memulihkan dari file ini? Seluruh data saat ini akan digantikan.', () => {
-      pulihkanDariFile(file, (ok, err) => {
-        if (ok) { tampilkanToast('Data berhasil dipulihkan.', 'sukses'); render(); }
-        else { tampilkanToast('Gagal memulihkan: ' + err, 'error'); }
-      });
-    }, { bahaya: true, labelYa: 'Ya, Pulihkan' });
-  });
-
   kontainer.querySelector('#btnReset')?.addEventListener('click', () => {
-    konfirmasi('Yakin ingin menghapus SEMUA data (produk, varian, transaksi)? Sebaiknya unduh cadangan dulu sebelum ini.', () => {
-      DATA = dataKosong();
-      simpanData();
-      tampilkanToast('Semua data telah dihapus.', 'sukses');
-      location.hash = '#dashboard';
-      render();
+    konfirmasi('Yakin ingin menghapus SEMUA data (produk, varian, transaksi, pembukuan)? Data di server ikut terhapus dan tidak bisa dikembalikan.', async () => {
+      try {
+        await hapusSemuaData();
+        tampilkanToast('Semua data telah dihapus.', 'sukses');
+        location.hash = '#dashboard';
+      } catch (e) {
+        tampilkanToast('Gagal menghapus data. Coba lagi.', 'error');
+      }
     }, { bahaya: true, labelYa: 'Ya, Hapus Semua' });
   });
 }

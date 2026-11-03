@@ -1,0 +1,25 @@
+{
+  "name": "Senantiasa - Stok & Pembukuan",
+  "short_name": "Senantiasa",
+  "description": "Stok produk Senantiasa untuk Shopee, TikTok Shop, dan toko offline, plus pembukuan",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#FBF7F4",
+  "theme_color": "#D47444",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "assets/img/logo.png",
+      "sizes": "1250x1204",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/img/logo.png",
+      "sizes": "1250x1204",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

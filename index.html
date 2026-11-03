@@ -1,15 +1,19 @@
 <!DOCTYPE html>
-<!-- GitHub Pages SELALU cari "index.html" di root -- file utama app ini sengaja tetap bernama
-     "Senantiasa.html" (biar konsisten dgn shortcut lokal & PANDUAN.md), jadi file ini cuma
-     pengalih otomatis supaya link utama (tanpa nama file) tetap berfungsi. -->
+<!-- Alamat lama (GitHub Pages). Aplikasi Senantiasa sekarang berjalan di Firebase Hosting;
+     halaman ini hanya mengalihkan supaya tautan atau bookmark lama tetap berfungsi. -->
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="refresh" content="0; url=Senantiasa.html">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="refresh" content="0; url=https://senantiasa-5598a.web.app/">
 <title>Senantiasa</title>
 </head>
 <body>
-<p>Mengalihkan ke <a href="Senantiasa.html">Senantiasa.html</a>...</p>
-<script>location.replace('Senantiasa.html');</script>
+<p>Aplikasi Senantiasa pindah ke <a href="https://senantiasa-5598a.web.app/">senantiasa-5598a.web.app</a>. Mengalihkan…</p>
+<script>
+  // Lepas service worker versi lama supaya tidak menyajikan salinan aplikasi lama dari cache.
+  if (navigator.serviceWorker) navigator.serviceWorker.getRegistrations().then(function (rs) { rs.forEach(function (r) { r.unregister(); }); });
+  location.replace('https://senantiasa-5598a.web.app/');
+</script>
 </body>
 </html>
