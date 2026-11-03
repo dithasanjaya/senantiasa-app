@@ -34,7 +34,7 @@ Tahap UI/UX. Bentuk mengikuti inspirasi ERP/POS (bingkai besar membulat, panel k
 - Pemindahan data lama sekali jalan: penanda dicek langsung ke server sebelum menulis (perangkat dengan cache lama tidak bisa menjalankannya ulang), butuh internet, dokumen lama tidak diubah. Kalau terputus di tengah jalan sebelum penanda tertulis, aman diulang.
 
 **Online**
-- Hosting pindah dari GitHub Pages ke Firebase Hosting (`senantiasa-5598a.web.app`). Alamat GitHub Pages hanya mengalihkan.
+- Hosting pindah dari GitHub Pages ke Firebase Hosting (`senantiasa.web.app`). Alamat GitHub Pages hanya mengalihkan.
 - Tidak ada lagi unduh cadangan, pengingat, atau pemulihan dari file.
 
 **Struktur proyek.** Aplikasi dipindah ke `public/`. Ditambahkan `package.json`, `tools/`, dan `test/` (uji logika stok, dua perangkat, migrasi).

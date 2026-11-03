@@ -1,1 +1,17 @@
-{ "projects": { "default": "senantiasa-5598a" } }
+{
+  "projects": {
+    "default": "senantiasa-5598a"
+  },
+  "targets": {
+    "senantiasa-5598a": {
+      "hosting": {
+        "app": [
+          "senantiasa"
+        ],
+        "lama": [
+          "senantiasa-5598a"
+        ]
+      }
+    }
+  }
+}

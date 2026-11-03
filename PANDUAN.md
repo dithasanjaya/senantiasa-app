@@ -2,7 +2,7 @@
 
 Aplikasi pencatat stok brand **Senantiasa** ([@senantiasa_](https://www.instagram.com/senantiasa_/)) untuk produk yang dijual di **Toko offline**, **Shopee**, dan **TikTok Shop**, plus pembukuan uang masuk dan keluar. Dipakai oleh pemilik dan karyawan, dari perangkat mana pun.
 
-Alamat: **https://senantiasa-5598a.web.app/** (masuk dengan email dan password akun Senantiasa).
+Alamat: **https://senantiasa.web.app/** (masuk dengan email dan password akun Senantiasa).
 
 ## 1. Cara berpikir stok yang baru
 

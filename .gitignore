@@ -21,6 +21,8 @@
 # --- alat & uji ---
 !tools/
 !tools/**
+!alihan/
+!alihan/**
 !test/
 !test/**
 
