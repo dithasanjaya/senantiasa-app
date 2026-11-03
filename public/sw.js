@@ -4,7 +4,7 @@
 //
 // Hanya aktif lewat http(s) -- tidak jalan dari file://.
 // Naikkan angka versi tiap kali file inti berubah supaya klien lama membuang cache basi.
-const CACHE_NAME = 'senantiasa-cache-v4';
+const CACHE_NAME = 'senantiasa-cache-v5';
 const ASET_INTI = [
   './',
   './manifest.json',
@@ -23,6 +23,8 @@ const ASET_INTI = [
   './assets/js/firebase-init.js',
   './assets/js/auth.js',
   './assets/img/logo.png',
+  './assets/img/ikon-180.png',
+  './assets/img/ikon-192.png',
   './assets/img/wordmark.png'
 ];
 
