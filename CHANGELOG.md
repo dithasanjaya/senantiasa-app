@@ -1,5 +1,11 @@
 # Riwayat perubahan
 
+## 2.2.0 (5 November 2026): mulai pencatatan dari awal
+
+- Layar pemindahan data lama punya pilihan **Produk saja, catatan mulai dari awal**: produk, varian, harga, kategori, dan pengaturan dipindahkan, riwayat transaksi dan catatan pembukuan lama tidak.
+- Pengaturan, Zona Berbahaya: **Hapus riwayat, mulai dari awal** menghapus transaksi dan pembukuan, sementara produk, pengaturan, stok yang tercatat, dan angka marketplace tetap.
+- Tooltip hover dimatikan.
+
 ## 2.1.0 (4 November 2026): tema Aurora
 
 Tahap UI/UX. Bentuk mengikuti inspirasi ERP/POS (bingkai besar membulat, panel kaca buram, tombol pill, kartu pastel), warna tetap palet Senantiasa.

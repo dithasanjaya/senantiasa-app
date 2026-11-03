@@ -2745,6 +2745,11 @@ function daftarGrupPengaturan() {
         <div class="pengaturan-seksi">
           <p class="teks-lemah">Mengosongkan seluruh produk, varian, transaksi, dan pembukuan dari server. Tidak bisa dibatalkan.</p>
           <button class="btn btn-bahaya" id="btnReset" data-tip="Tindakan permanen, tidak bisa di-undo">Hapus Semua Data</button>
+        </div>
+        <div class="pengaturan-seksi">
+          <h3>Mulai pencatatan dari awal</h3>
+          <p class="teks-lemah">Menghapus riwayat transaksi dan catatan pembukuan, tetapi produk, varian, harga, foto, kategori, dan pengaturan tetap. Stok yang tercatat sekarang menjadi stok awal yang baru.</p>
+          <button class="btn btn-bahaya" id="btnMulaiBaru">Hapus riwayat, mulai dari awal</button>
         </div>`
     }
   // Tab "Kelompok & Rincian Biaya" (Senantiasa), pengaturan Dinda/Retro Gaming, MAUPUN "Zona
@@ -2878,6 +2883,18 @@ function renderPengaturan() {
     await PWA_DEFERRED_PROMPT.userChoice;
     PWA_DEFERRED_PROMPT = null;
     renderPengaturan();
+  });
+
+  kontainer.querySelector('#btnMulaiBaru')?.addEventListener('click', () => {
+    konfirmasi(`Hapus <strong>${DATA.transaksi.length} transaksi</strong> dan <strong>semua catatan pembukuan</strong> (Senantiasa, Dinda, Retro)? Produk dan pengaturan tetap. Tindakan ini tidak bisa dibatalkan.`, async () => {
+      try {
+        await mulaiCatatanBaru({ pembukuan: true });
+        tampilkanToast('Riwayat dihapus. Pencatatan dimulai dari awal.', 'sukses');
+        render();
+      } catch (e) {
+        tampilkanToast('Gagal di tengah jalan. Tekan lagi tombolnya untuk melanjutkan; jangan muat ulang halaman.', 'error');
+      }
+    }, { bahaya: true, labelYa: 'Ya, mulai dari awal' });
   });
 
   kontainer.querySelector('#btnReset')?.addEventListener('click', () => {

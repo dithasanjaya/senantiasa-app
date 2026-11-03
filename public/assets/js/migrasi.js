@@ -17,7 +17,9 @@
 
   function bersih(o) { return JSON.parse(JSON.stringify(o)); } // buang undefined
 
-  function rencanaMigrasi(lama, sekarang) {
+  function rencanaMigrasi(lama, sekarang, opsi) {
+    // opsi.mulaiDariNol: pindahkan produk, varian & pengaturan SAJA; riwayat transaksi dan catatan pembukuan tidak ikut.
+    const dariNol = !!(opsi && opsi.mulaiDariNol);
     const docs = [];
     const legacy = {};
     const produk = lama.produk || [];
@@ -40,11 +42,11 @@
           : (v.stokAwal || {});
         const per = {};
         CH.forEach(c => { per[c] = Number(awal[c]) || 0; });
-        let efekTotal = 0;
+        let efekTotal = 0; // efek transaksi yang BENAR-BENAR ditulis (nol kalau mulai dari awal)
         for (const t of transaksi) {
           if (t.varianId !== v.id) continue;
           const e = efek(t);
-          efekTotal += e;
+          if (!dariNol) efekTotal += e;
           if (per[t.channel] !== undefined) per[t.channel] += e;
         }
         const totalLama = CH.reduce((a, c) => a + (Number(awal[c]) || 0), 0) + efekTotal;
@@ -70,7 +72,7 @@
       });
     }
 
-    for (const t of transaksi) {
+    for (const t of (dariNol ? [] : transaksi)) {
       docs.push({
         k: 'transaksi', id: t.id,
         data: bersih({
@@ -81,14 +83,14 @@
     }
 
     let n = 0;
-    for (const x of (lama.pembukuan || [])) {
+    for (const x of (dariNol ? [] : (lama.pembukuan || []))) {
       docs.push({ k: 'pembukuan', id: x.id || ('mig_s_' + (n++)), data: bersih({ ...x, id: undefined, ws: 'senantiasa' }) });
     }
     const wsLama = lama.pembukuanWs || {};
     const wsPengaturan = {};
     for (const wsId of Object.keys(wsLama)) {
       const ws = wsLama[wsId] || {};
-      for (const x of (ws.list || [])) {
+      for (const x of (dariNol ? [] : (ws.list || []))) {
         docs.push({ k: 'pembukuan', id: x.id || ('mig_' + wsId + '_' + (n++)), data: bersih({ ...x, id: undefined, ws: wsId }) });
       }
       wsPengaturan[wsId] = bersih({
@@ -103,7 +105,8 @@
 
     const meta = {
       selesai: true, at: sekarang, versi: 2, sumber: 'toko (dokumen lama, tidak diubah)', perluOpname: true, legacy,
-      jumlah: { produk: produk.length, varian: jumlahVarian, transaksi: transaksi.length, pembukuan: (lama.pembukuan || []).length }
+      mulaiDariNol: dariNol,
+      jumlah: { produk: produk.length, varian: jumlahVarian, transaksi: dariNol ? 0 : transaksi.length, pembukuan: dariNol ? 0 : (lama.pembukuan || []).length }
     };
     return { docs, meta };
   }

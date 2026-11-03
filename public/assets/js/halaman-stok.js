@@ -286,21 +286,28 @@ async function tampilkanLayarMigrasi(gerbang) {
   kotak(`<h1>Pindahkan data lama</h1>
     <p>Ditemukan <strong>${lama.produk.length} produk</strong>, <strong>${jumlahVarian} varian</strong>, <strong>${(lama.transaksi || []).length} transaksi</strong> dan <strong>${(lama.pembukuan || []).length} catatan pembukuan</strong> di sistem lama.</p>
     <p class="migrasi-catatan">Di sistem lama setiap channel punya stok sendiri dan dijumlahkan. Sistem baru memakai <strong>satu stok fisik</strong> per varian. Angka stok akan ditebak dari channel terbesar, lalu kamu konfirmasi lewat menu <strong>Hitung Stok</strong>. Data lama tidak diubah atau dihapus.</p>
-    <button type="button" id="btnPindah">Pindahkan sekarang</button>
+    <button type="button" id="btnPindah">Pindahkan semuanya</button>
+    <button type="button" id="btnPindahBaru" class="gerbang-kunci__sekunder">Produk saja, catatan mulai dari awal</button>
+    <p class="migrasi-catatan">Pilihan kedua memindahkan produk, varian, harga, kategori, dan pengaturan, tetapi <strong>tidak</strong> membawa riwayat transaksi dan catatan pembukuan lama. Cocok kalau pencatatan ingin dimulai bersih.</p>
     <p id="statusMigrasi" class="migrasi-status" hidden></p>`);
-  document.getElementById('btnPindah').onclick = async (e) => {
+  const jalankan = (opsi) => async (e) => {
     const st = document.getElementById('statusMigrasi');
-    e.target.disabled = true; e.target.textContent = 'Memindahkan…';
+    const tombol = [document.getElementById('btnPindah'), document.getElementById('btnPindahBaru')];
+    tombol.forEach(b => { b.disabled = true; });
+    e.target.textContent = 'Memindahkan…';
     st.hidden = false; st.textContent = 'Jangan tutup halaman ini sampai selesai.';
     try {
-      await jalankanMigrasi(lama);
+      await jalankanMigrasi(lama, opsi);
       await selesai();
       location.hash = '#opname';
     } catch (err) {
       console.error(err);
       if (err && err.code === 'sudah-dimigrasi') { location.reload(); return; }
-      e.target.disabled = false; e.target.textContent = 'Coba lagi';
+      tombol.forEach(b => { b.disabled = false; });
+      e.target.textContent = 'Coba lagi';
       st.textContent = 'Gagal memindahkan data. Periksa koneksi lalu coba lagi. Data lama masih utuh.';
     }
   };
+  document.getElementById('btnPindah').onclick = jalankan();
+  document.getElementById('btnPindahBaru').onclick = jalankan({ mulaiDariNol: true });
 }

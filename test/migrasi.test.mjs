@@ -95,3 +95,41 @@ test('migrasi menolak berjalan saat offline (tidak bisa memastikan ke server)', 
   assert.equal(kode, 'unavailable');
   assert.equal(b.ekspor().produk.length, 0);
 });
+
+test('migrasi "mulai dari awal": produk & pengaturan pindah, riwayat dan pembukuan tidak; stok tetap tebakan yang sama', async () => {
+  const b = buatBackendMemori({ dokumenLama: lama });
+  const a = buatPerangkat(b); await a.mulai();
+  const jumlah = await a.api(`jalankanMigrasi(${JSON.stringify(lama)}, { mulaiDariNol: true })`);
+  assert.deepEqual(JSON.parse(JSON.stringify(jumlah)), { produk: 2, varian: 2, transaksi: 0, pembukuan: 0 });
+  await a.tunggu();
+  const e = b.ekspor();
+  assert.equal(e.transaksi.length, 0);
+  assert.equal(e.pembukuan.length, 0);
+  assert.equal(a.api("hitungStok('pS','vS')"), 2); // sama seperti jalur penuh
+  assert.equal(a.api("hitungStok('pT','vT')"), 3);
+  assert.equal(a.api("listingVarian('vS','TikTok Shop')"), 1);
+  assert.equal(a.api("DATA.pengaturan.kategoriList.join()"), 'Top,Kebaya');
+  assert.equal(a.api('DATA.meta.migrasi.mulaiDariNol'), true);
+});
+
+test('mulaiCatatanBaru: riwayat & pembukuan terhapus, produk/pengaturan/stok/listing tetap', async () => {
+  const b = buatBackendMemori({ dokumenLama: lama });
+  const a = buatPerangkat(b); await a.mulai();
+  await a.api(`jalankanMigrasi(${JSON.stringify(lama)})`);
+  await a.tunggu();
+  a.api("tambahTransaksi({tipe:'keluar',produkId:'pT',varianId:'vT',channel:'Shopee',qty:1,hargaSatuan:1,tanggal:'2026-11-03'})");
+  await a.tunggu();
+  const stokSebelum = a.api("[hitungStok('pS','vS'), hitungStok('pT','vT')].join()");
+  const listingSebelum = a.api("JSON.stringify(DATA.listing)");
+  const n = await a.api("mulaiCatatanBaru({ pembukuan: true })");
+  await a.tunggu();
+  assert.equal(n, 4);
+  const e = b.ekspor();
+  assert.equal(e.transaksi.length, 0);
+  assert.equal(e.pembukuan.length, 0);
+  assert.equal(e.produk.length, 2);
+  assert.equal(a.api("[hitungStok('pS','vS'), hitungStok('pT','vT')].join()"), stokSebelum);
+  assert.equal(a.api("JSON.stringify(DATA.listing)"), listingSebelum);
+  assert.equal(a.api("DATA.pengaturan.kategoriList.join()"), 'Top,Kebaya');
+  assert.equal(a.api("DATA.pembukuanWs.dinda.kelompokMasukList.length > 0"), true);
+});

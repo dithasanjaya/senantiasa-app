@@ -372,9 +372,9 @@ async function pastikanBelumDimigrasi() {
   if (ada) throw Object.assign(new Error('Pemindahan data sudah pernah dilakukan.'), { code: 'sudah-dimigrasi' });
 }
 
-async function jalankanMigrasi(lama) {
+async function jalankanMigrasi(lama, opsi) {
   await pastikanBelumDimigrasi();
-  const rencana = rencanaMigrasi(lama, new Date().toISOString());
+  const rencana = rencanaMigrasi(lama, new Date().toISOString(), opsi);
   const ops = rencana.docs.map(d => ({ t: 'set', k: d.k, id: d.id, data: d.data }));
   await BACKEND.tulis(ops);                                                  // data dulu...
   await BACKEND.tulis([{ t: 'set', k: 'meta', id: 'migrasi', data: rencana.meta }]); // ...penanda selesai terakhir
@@ -383,6 +383,33 @@ async function jalankanMigrasi(lama) {
 async function mulaiKosong() {
   await pastikanBelumDimigrasi();
   await BACKEND.tulis([{ t: 'set', k: 'meta', id: 'migrasi', data: { selesai: true, at: new Date().toISOString(), versi: 2, perluOpname: false, sumber: 'kosong' } }]);
+}
+
+// ---------- Mulai pencatatan dari awal (pemilik) ----------
+// Menghapus RIWAYAT (transaksi, dan opsional catatan pembukuan); produk, varian, harga, foto,
+// kategori, pengaturan, dan angka listing tetap. Stok fisik tidak berubah: saldo awal tiap varian
+// diganti dgn stok saat ini.
+let _targetStokMulaiBaru = null; // dibekukan di percobaan pertama supaya mengulang setelah gagal tidak menghitung ulang
+async function mulaiCatatanBaru(opsi) {
+  const sertakanPembukuan = !!(opsi && opsi.pembukuan);
+  if (!_targetStokMulaiBaru) {
+    _targetStokMulaiBaru = {};
+    petaStokSaatIni().forEach((n, id) => { _targetStokMulaiBaru[id] = n; });
+  }
+  const hapus = [];
+  DATA.transaksi.forEach(t => hapus.push({ t: 'hapus', k: 'transaksi', id: t.id }));
+  if (sertakanPembukuan) {
+    DATA.pembukuan.forEach(x => hapus.push({ t: 'hapus', k: 'pembukuan', id: x.id }));
+    DAFTAR_WS_PEMBUKUAN.forEach(w => DATA.pembukuanWs[w].list.forEach(x => hapus.push({ t: 'hapus', k: 'pembukuan', id: x.id })));
+  }
+  const jumlah = DATA.transaksi.length;
+  // Riwayat dihapus DULU, saldo awal baru ditulis TERAKHIR: kalau terputus di tengah jalan stok tidak
+  // pernah terhitung ganda (paling buruk angkanya perlu dicocokkan lewat Hitung Stok).
+  await BACKEND.tulis(hapus);
+  const produk = DATA.produk.map(p => ({ ...p, varian: p.varian.map(v => ({ ...v, stokAwal: _targetStokMulaiBaru[v.id] ?? 0 })) }));
+  await BACKEND.tulis(produk.map(p => ({ t: 'set', k: 'produk', id: p.id, data: dokProduk(p) })));
+  _targetStokMulaiBaru = null;
+  return jumlah;
 }
 
 // ---------- Hapus semua data (Zona Berbahaya, pemilik) ----------
