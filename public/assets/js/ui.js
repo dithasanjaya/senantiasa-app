@@ -132,7 +132,12 @@ function buatCombobox(hostEl, opsi) {
 }
 
 // ---------- Tooltip global (mengambang, lihat catatan panjang di style.css) ----------
+// Tooltip DIMATIKAN (permintaan pemilik): atribut data-tip dibiarkan di markup (tidak berbahaya),
+// tapi tidak ada lagi balon yang muncul saat hover. Ubah TOOLTIP_AKTIF jadi true untuk menyalakan lagi.
+const TOOLTIP_AKTIF = false;
+
 function tampilkanTooltip(target) {
+  if (!TOOLTIP_AKTIF) return;
   const el = document.getElementById('tooltipGlobal');
   const teks = target.getAttribute('data-tip');
   if (!el || !teks) return;
@@ -165,6 +170,11 @@ function sembunyikanTooltip() {
 }
 
 function pasangTooltipGlobal() {
+  // tooltip bawaan browser (atribut title) ikut dibuang saat kursor lewat, supaya tidak ada balon sama sekali
+  document.addEventListener('mouseover', (e) => {
+    const t = e.target.closest && e.target.closest('[title]');
+    if (t) t.removeAttribute('title');
+  }, true);
   document.addEventListener('mouseover', (e) => {
     const el = e.target.closest('[data-tip]');
     if (el) tampilkanTooltip(el);

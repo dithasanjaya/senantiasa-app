@@ -4,7 +4,7 @@
 //
 // Hanya aktif lewat http(s) -- tidak jalan dari file://.
 // Naikkan angka versi tiap kali file inti berubah supaya klien lama membuang cache basi.
-const CACHE_NAME = 'senantiasa-cache-v3';
+const CACHE_NAME = 'senantiasa-cache-v4';
 const ASET_INTI = [
   './',
   './manifest.json',
