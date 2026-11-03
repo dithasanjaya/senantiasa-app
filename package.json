@@ -1,0 +1,13 @@
+{
+  "name": "senantiasa-app",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Stok & pembukuan Senantiasa. Firebase Hosting + Firestore, tanpa server dan tanpa build.",
+  "scripts": {
+    "start": "node tools/serve.mjs 3100",
+    "test": "node --test test/stok.test.mjs test/migrasi.test.mjs test/migrasi-katalog.test.mjs",
+    "test:rules": "node tools/rules-test.mjs",
+    "deploy": "firebase deploy"
+  }
+}

@@ -1111,3 +1111,50 @@ tbody tr:hover { background: var(--raised); }
   size: A4;
   margin: 10mm;
 }
+
+/* ============================================================
+   Model stok baru (Nov 2026): Sinkron Marketplace, Hitung Stok, listing per varian.
+   Sengaja polos/fungsional -- polesan desain dikerjakan di tahap UI/UX berikutnya.
+   ============================================================ */
+.nav__badge { margin-left: auto; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; background: var(--bahaya); color: #fff; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
+.listing-ok { color: var(--teks); }
+.listing-beda { color: var(--bahaya); font-weight: 600; white-space: nowrap; }
+.listing-beda i { font-style: normal; opacity: .7; }
+.btn-centang { margin-left: 6px; width: 24px; height: 24px; border-radius: 6px; border: 1px solid var(--kontrol, #ccc); background: #fff; color: var(--sukses); cursor: pointer; font-size: 13px; line-height: 1; }
+.btn-centang:hover { background: var(--sukses); color: #fff; border-color: var(--sukses); }
+.dot-channel--beda { background: var(--bahaya) !important; }
+.laporan-sel-beda { color: var(--bahaya); font-weight: 700; }
+.sinkron-petunjuk { margin: 0 0 14px; max-width: 70ch; }
+.sinkron-kartu { margin-bottom: 14px; }
+.sinkron-daftar { display: flex; flex-direction: column; }
+.sinkron-baris { display: flex; align-items: center; gap: 14px; padding: 10px 0; border-top: 1px solid var(--garis); }
+.sinkron-baris:first-child { border-top: 0; }
+.sinkron-baris__nama { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.sinkron-baris__nama a { font-weight: 600; color: var(--teks); text-decoration: none; }
+.sinkron-baris__nama a:hover { text-decoration: underline; }
+.sinkron-baris__angka { display: flex; align-items: center; gap: 8px; font-size: 18px; font-variant-numeric: tabular-nums; }
+.sinkron-baris__angka i { font-style: normal; color: var(--teks-lemah); }
+.sinkron-lama { color: var(--teks-lemah); text-decoration: line-through; }
+.sinkron-baru { font-weight: 700; color: var(--teks); }
+.sinkron-baru--nol { color: var(--bahaya); }
+.sinkron-ringkas__baris { display: flex; flex-direction: column; margin-bottom: 10px; }
+.sinkron-ringkas__item { display: flex; justify-content: space-between; gap: 10px; padding: 7px 0; border-top: 1px solid var(--garis); color: var(--teks); text-decoration: none; font-size: 13px; }
+.sinkron-ringkas__item:first-child { border-top: 0; }
+.sinkron-ringkas__angka { white-space: nowrap; color: var(--bahaya); }
+.sinkron-ringkas__angka b { color: var(--teks); }
+.opname-info { margin-bottom: 14px; }
+.opname-info p { margin: 0; max-width: 70ch; }
+.opname-input { width: 90px; text-align: right; padding: 6px 8px; border: 1px solid var(--kontrol, #ccc); border-radius: 6px; font: inherit; }
+.opname-selisih { font-variant-numeric: tabular-nums; }
+.opname-selisih--naik { color: var(--sukses); font-weight: 700; }
+.opname-selisih--turun { color: var(--bahaya); font-weight: 700; }
+.migrasi-kotak { max-width: 460px; text-align: left; }
+.migrasi-kotak h1, .migrasi-kotak > p { text-align: left; }
+.migrasi-catatan { background: var(--tint-kuning, #FEF7D6); padding: 10px 12px; border-radius: 8px; font-size: 12.5px; color: var(--teks-badan, #37352F); }
+.migrasi-status { margin-top: 12px; color: var(--teks-lemah); }
+.gerbang-kunci__sekunder { background: transparent !important; color: var(--teks-lemah) !important; border: 1px solid var(--garis) !important; }
+.gerbang-kunci__kotak button + button { margin-left: 8px; }
+@media (max-width: 640px) {
+  .sinkron-baris { flex-wrap: wrap; }
+  .sinkron-baris__nama { flex-basis: 100%; }
+}

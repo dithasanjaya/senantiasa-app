@@ -6,7 +6,7 @@ function tampilkanToast(pesan, jenis) {
   el.className = 'toast' + (jenis ? ' ' + jenis : '');
   el.textContent = pesan;
   host.appendChild(el);
-  setTimeout(() => el.remove(), 3800);
+  setTimeout(() => el.remove(), Math.max(3800, Math.min(9000, pesan.length * 60)));
 }
 
 function tutupModal() {

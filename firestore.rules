@@ -1,0 +1,73 @@
+rules_version = '2';
+// Aturan data Senantiasa (project senantiasa-5598a). Uji: npm run test:rules (tanpa deploy).
+//  - Hanya DUA akun yang punya akses (sama seperti aturan lama): pemilik dan satu akun karyawan.
+//    Akun lain yang berhasil login (mis. mendaftar sendiri) tetap ditolak di semua koleksi.
+//    Menambah karyawan: tambahkan uid-nya di daftar `STAF` bawah ini lalu deploy aturan.
+//  - Pemilik membuka semuanya. Karyawan: stok, produk, transaksi.
+//  - Pembukuan & pengaturan biaya HANYA pemilik -- dijaga di sini, bukan cuma disembunyikan di tampilan.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function pemilik() { return request.auth != null && request.auth.uid == 'I6owACv9yJZQndKJK2Aq7aSqagh2'; }
+    function staf() { return request.auth != null && request.auth.uid in ['UvWmcn4tGGWC0O12kpwkVzYmuqi1']; }
+    function masuk() { return pemilik() || staf(); }
+
+    // Dokumen SISTEM LAMA (satu dokumen raksasa), aturan SAMA dengan sebelumnya. Dibaca sekali untuk
+    // pemindahan data. Penulisan dibiarkan selama aplikasi lama di GitHub Pages masih dipakai --
+    // setelah peralihan, ganti "write" jadi "write: if false".
+    match /toko/{uid} {
+      allow read, write: if request.auth != null && (request.auth.uid == uid || staf());
+    }
+
+    match /produk/{id} {
+      allow read: if masuk();
+      allow create, update: if masuk() && request.resource.data.nama is string && request.resource.data.varian is list;
+      allow delete: if masuk();
+    }
+
+    // Satu mutasi stok. Penjualan/restock selalu qty positif; koreksi boleh minus.
+    match /transaksi/{id} {
+      allow read: if masuk();
+      allow create, update: if masuk()
+        && request.resource.data.tipe in ['masuk', 'keluar', 'koreksi']
+        && request.resource.data.qty is number
+        && (request.resource.data.tipe == 'koreksi' || request.resource.data.qty > 0)
+        && request.resource.data.varianId is string
+        && request.resource.data.produkId is string;
+      allow delete: if masuk();
+    }
+
+    // Angka yg tertera di Shopee / TikTok Shop per varian.
+    match /listing/{varianId} {
+      allow read: if masuk();
+      allow create, update: if masuk()
+        && request.resource.data.keys().hasOnly(['produkId', 'Shopee', 'TikTok Shop'])
+        && (!('Shopee' in request.resource.data) || request.resource.data['Shopee'] is number)
+        && (!('TikTok Shop' in request.resource.data) || request.resource.data['TikTok Shop'] is number);
+      allow delete: if masuk();
+    }
+
+    match /foto/{id} {
+      allow read: if masuk();
+      allow create, update: if masuk() && request.resource.data.data is string && request.resource.data.data.size() < 250000;
+      allow delete: if masuk();
+    }
+
+    match /pengaturan/{id} {
+      allow read, write: if masuk();
+    }
+
+    // meta/migrasi hanya boleh ditulis pemilik (penanda pemindahan data); meta/opname siapa pun yg login.
+    match /meta/{id} {
+      allow read: if masuk();
+      allow write: if (id == 'opname' && masuk()) || pemilik();
+    }
+
+    // HANYA pemilik
+    match /pembukuan/{id} {
+      allow read, write: if pemilik();
+    }
+    match /keuangan/{id} {
+      allow read, write: if pemilik();
+    }
+  }
+}

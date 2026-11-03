@@ -1,24 +1,34 @@
-# Folder ini berisi CAMPURAN file app + file kerja pribadi (backup data asli, screenshot toko,
-# spreadsheet katalog, dll) -- supaya tidak ada yang KETINGGALAN ke-commit tanpa sengaja ke repo
-# publik, strategi di sini WHITELIST (bukan blacklist): abaikan SEMUA dulu, baru izinkan satu-satu
-# file/folder yang memang bagian dari aplikasi yang di-hosting.
+# Folder ini berisi CAMPURAN file app + file kerja pribadi (backup data asli, salinan lama, dll).
+# Supaya tidak ada yang KETINGGALAN ke-commit tanpa sengaja ke repo publik, strategi di sini
+# WHITELIST: abaikan SEMUA dulu, lalu izinkan satu-satu yang memang bagian dari proyek.
 *
 
-# --- Izinkan file konfigurasi git & dokumentasi ---
+# --- konfigurasi & dokumentasi ---
 !.gitignore
 !README.md
 !PANDUAN.md
+!CHANGELOG.md
+!package.json
+!firebase.json
+!.firebaserc
+!firestore.rules
+!firestore.indexes.json
 
-# --- Izinkan file inti aplikasi ---
+# --- aplikasi yang di-hosting (Firebase Hosting menyajikan folder public/) ---
+!public/
+!public/**
+
+# --- alat & uji ---
+!tools/
+!tools/**
+!test/
+!test/**
+
+# --- pengalih untuk alamat lama di GitHub Pages ---
 !index.html
 !Senantiasa.html
-!manifest.json
-!sw.js
 
-# --- Izinkan folder assets (kode + gambar produk yg dipakai app) ---
-!assets/
-!assets/**
-
-# --- KECUALIKAN cadangan data asli yg nyelip di assets/js/ (BUKAN bagian app, ini data bisnis
-#     sungguhan -- jangan sampai ke-publish) ---
-assets/js/cadangan-*.json
+# --- data bisnis asli yang tidak boleh ikut ke repo publik ---
+cadangan-*.json
+salinan-senantiasa-*.json
+node_modules/
