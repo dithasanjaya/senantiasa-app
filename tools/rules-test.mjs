@@ -6,7 +6,7 @@ import { api, PROJECT } from './firebase-api.mjs';
 const RULES = fs.readFileSync(new URL('../firestore.rules', import.meta.url), 'utf8');
 const D = '/databases/(default)/documents';
 const PEMILIK = 'I6owACv9yJZQndKJK2Aq7aSqagh2';
-const WHO = { pemilik: PEMILIK, staf: 'uidStafBiasa' };
+const WHO = { pemilik: PEMILIK, staf: 'UvWmcn4tGGWC0O12kpwkVzYmuqi1', asing: 'uidOrangAsing' };
 
 function tc(name, expect, who, method, path, data = null) {
   const request = { auth: who ? { uid: WHO[who], token: {} } : null, method, path: `${D}/${path}` };
@@ -22,6 +22,13 @@ const cases = [
   tc('anonim baca produk', 'DENY', null, 'get', 'produk/p1'),
   tc('anonim tulis transaksi', 'DENY', null, 'create', 'transaksi/t1', tx),
   tc('anonim baca dokumen sistem lama', 'DENY', null, 'get', `toko/${PEMILIK}`),
+  // akun asing (login tapi bukan pemilik/karyawan, mis. mendaftar sendiri)
+  tc('asing baca produk', 'DENY', 'asing', 'get', 'produk/p1'),
+  tc('asing daftar transaksi', 'DENY', 'asing', 'list', 'transaksi/t1'),
+  tc('asing tulis transaksi', 'DENY', 'asing', 'create', 'transaksi/t1', tx),
+  tc('asing tulis listing', 'DENY', 'asing', 'update', 'listing/v1', { produkId: 'p1', 'Shopee': 1 }),
+  tc('asing tandai opname', 'DENY', 'asing', 'create', 'meta/opname', { selesaiAt: 'x' }),
+  tc('asing baca dokumen sistem lama', 'DENY', 'asing', 'get', `toko/${PEMILIK}`),
   // karyawan: stok boleh
   tc('staf baca produk', 'ALLOW', 'staf', 'get', 'produk/p1'),
   tc('staf catat penjualan', 'ALLOW', 'staf', 'create', 'transaksi/t1', tx),
@@ -56,6 +63,7 @@ const cases = [
   tc('pemilik tulis pengaturan biaya', 'ALLOW', 'pemilik', 'update', 'keuangan/pengaturan', { kelompokBiayaList: [] }),
   tc('pemilik tandai migrasi', 'ALLOW', 'pemilik', 'create', 'meta/migrasi', { selesai: true }),
   tc('pemilik baca dokumen sistem lama', 'ALLOW', 'pemilik', 'get', `toko/${PEMILIK}`),
+  tc('staf baca dokumen sistem lama (aturan lama dipertahankan)', 'ALLOW', 'staf', 'get', `toko/${PEMILIK}`),
   tc('pemilik catat penjualan', 'ALLOW', 'pemilik', 'create', 'transaksi/t1', tx),
   // koleksi tak dikenal
   tc('koleksi tak dikenal ditolak', 'DENY', 'pemilik', 'create', 'sembarang/x', { a: 1 }),

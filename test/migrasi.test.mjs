@@ -42,10 +42,11 @@ test('migrasi: stok fisik ditebak dari channel terbesar, listing = angka lama, d
   assert.equal(a.api('perluOpname()'), false);
 });
 
-test('migrasi idempoten: dijalankan dua kali tidak menggandakan data', async () => {
+test('migrasi yang terputus (data tertulis, penanda belum) aman diulang tanpa menggandakan', async () => {
   const b = buatBackendMemori({ dokumenLama: lama });
   const a = buatPerangkat(b); await a.mulai();
   await a.api(`jalankanMigrasi(${JSON.stringify(lama)})`);
+  await b.tulis([{ t: 'hapus', k: 'meta', id: 'migrasi' }]); // seolah terputus sebelum penanda tertulis
   await a.api(`jalankanMigrasi(${JSON.stringify(lama)})`);
   const e = b.ekspor();
   assert.equal(e.transaksi.length, 3);
@@ -67,4 +68,30 @@ test('migrasi: transaksi lama yang janggal (qty 0 / negatif) disaring dan stok t
   await a.tunggu();
   assert.ok(b.ekspor().transaksi.every(([, t]) => (t.tipe === 'koreksi' ? t.qty !== 0 : t.qty > 0)));
   assert.equal(a.api("hitungStok('pT','vT')"), 2); // tebakan Toko = 5-2-1 = 2
+});
+
+test('migrasi ditolak kalau server sudah punya penanda (walau cache perangkat masih kosong)', async () => {
+  const b = buatBackendMemori({ dokumenLama: lama });
+  const hp = buatPerangkat(b); await hp.mulai();
+  const laptop = buatPerangkat(b); await laptop.mulai();
+  await laptop.api(`jalankanMigrasi(${JSON.stringify(lama)})`);
+  await laptop.tunggu();
+  laptop.api("tambahTransaksi({tipe:'keluar',produkId:'pT',varianId:'vT',channel:'Toko',qty:1,hargaSatuan:1,tanggal:'2026-11-03'})");
+  laptop.api("hapusProduk('pS')");
+  await laptop.tunggu();
+  const sebelum = JSON.stringify(b.ekspor());
+  hp.api('DATA.meta.migrasi = null'); // perangkat dgn cache lama: mengira belum dimigrasi
+  let kode = null;
+  try { await hp.api(`jalankanMigrasi(${JSON.stringify(lama)})`); } catch (e) { kode = e.code; }
+  assert.equal(kode, 'sudah-dimigrasi');
+  assert.equal(JSON.stringify(b.ekspor()), sebelum); // tidak ada yang tertimpa, produk yang dihapus tidak hidup lagi
+});
+
+test('migrasi menolak berjalan saat offline (tidak bisa memastikan ke server)', async () => {
+  const b = buatBackendMemori({ dokumenLama: lama, offline: true });
+  const a = buatPerangkat(b); await a.mulai();
+  let kode = null;
+  try { await a.api(`jalankanMigrasi(${JSON.stringify(lama)})`); } catch (e) { kode = e.code; }
+  assert.equal(kode, 'unavailable');
+  assert.equal(b.ekspor().produk.length, 0);
 });

@@ -15,8 +15,8 @@
 - Firestore per dokumen (produk, transaksi, listing, foto, pembukuan, pengaturan) dengan listener realtime. Dua perangkat tidak lagi saling menimpa.
 - Cache lokal permanen: tetap bisa mencatat saat offline, terkirim otomatis saat online.
 - Foto produk ikut tersimpan online.
-- `firestore.rules` baru: pembukuan dan pengaturan biaya hanya bisa dibaca atau ditulis pemilik (sebelumnya hanya disembunyikan di tampilan); transaksi dan listing divalidasi. Diuji dengan `npm run test:rules` (36 kasus).
-- Pemindahan data lama sekali jalan, aman diulang, dokumen lama tidak diubah.
+- `firestore.rules` baru: pembukuan dan pengaturan biaya hanya bisa dibaca atau ditulis pemilik (sebelumnya hanya disembunyikan di tampilan); transaksi dan listing divalidasi. Akses tetap dibatasi ke dua uid (pemilik dan satu karyawan) seperti aturan lama, bukan semua akun yang login. Diuji dengan `npm run test:rules` (43 kasus).
+- Pemindahan data lama sekali jalan: penanda dicek langsung ke server sebelum menulis (perangkat dengan cache lama tidak bisa menjalankannya ulang), butuh internet, dokumen lama tidak diubah. Kalau terputus di tengah jalan sebelum penanda tertulis, aman diulang.
 
 **Online**
 - Hosting pindah dari GitHub Pages ke Firebase Hosting (`senantiasa-5598a.web.app`). Alamat GitHub Pages hanya mengalihkan.

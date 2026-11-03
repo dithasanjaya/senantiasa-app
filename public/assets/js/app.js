@@ -2643,7 +2643,7 @@ function daftarGrupPengaturan() {
         </div>
         ${apakahPemilik() ? `<div class="pengaturan-seksi">
           <h3>Akses Karyawan</h3>
-          <p class="teks-lemah">Akun karyawan hanya bisa membuka stok, produk, dan transaksi. Pembukuan hanya bisa dibuka akun pemilik (dijaga di server, bukan sekadar disembunyikan). Tambah atau hapus akun karyawan lewat Firebase Console, Authentication, Users. Pastikan juga opsi pendaftaran mandiri dimatikan (Authentication, Settings, User actions) supaya orang asing tidak bisa membuat akun sendiri.</p>
+          <p class="teks-lemah">Hanya dua akun yang punya akses ke data: pemilik dan satu akun karyawan. Akun lain tidak bisa membuka data walau berhasil login. Karyawan bisa mengelola stok, produk, dan transaksi, tetapi tidak bisa membaca atau menulis pembukuan (dijaga di server, bukan sekadar disembunyikan). Menambah karyawan: buat akunnya di Firebase Console, Authentication, Users, lalu minta uid-nya didaftarkan di aturan akses (firestore.rules).</p>
         </div>
         <div class="pengaturan-seksi">
           <h3>Salinan Data (opsional)</h3>

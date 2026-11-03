@@ -57,5 +57,6 @@ Project: `senantiasa-5598a`. Setelah deploy dan pemindahan data selesai, ganti a
 ## Catatan keamanan
 
 - `firebaseConfig` di `firebase-init.js` memang publik. Keamanan datang dari login dan `firestore.rules`.
-- Matikan pendaftaran mandiri di Firebase Authentication (Settings, User actions) dan buat akun karyawan lewat Console.
+- Hanya dua uid (pemilik dan satu karyawan) yang bisa membaca data; akun lain ditolak di `firestore.rules`. Menambah karyawan: daftarkan uid di fungsi `staf()`. Sebaiknya matikan juga pendaftaran mandiri di Firebase Authentication (Settings, User actions).
+- Pemindahan data lama dijaga agar hanya jalan sekali: penanda `meta/migrasi` dicek langsung ke server (bukan cache) sebelum menulis.
 - Foto disimpan sebagai JPEG kecil (maks 480px) di dokumen `foto/{produkId}` karena Firebase Storage tidak dipakai (paket gratis).

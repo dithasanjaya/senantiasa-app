@@ -218,6 +218,20 @@ async function tampilkanLayarMigrasi(gerbang) {
   }
 
   kotak('<h1>Memeriksa data…</h1><div class="gerbang-kunci__spinner" aria-label="Memuat"></div>');
+
+  // Cek ke SERVER (bukan cache perangkat) apakah pemindahan sudah pernah dilakukan dari perangkat lain.
+  let sudah;
+  try { sudah = await BACKEND.dokumenServer('meta/migrasi'); }
+  catch (err) {
+    kotak(`<h1>Butuh koneksi internet</h1><p>Pemindahan data hanya bisa dilakukan saat online. Sambungkan internet lalu coba lagi.</p><button type="button" id="btnCobaMigrasi">Coba lagi</button>`);
+    document.getElementById('btnCobaMigrasi').onclick = () => tampilkanLayarMigrasi(gerbang);
+    return;
+  }
+  if (sudah) {
+    kotak('<h1>Data sudah dipindahkan</h1><p>Memuat ulang data terbaru…</p><div class="gerbang-kunci__spinner" aria-label="Memuat"></div>');
+    setTimeout(() => location.reload(), 600);
+    return;
+  }
   const lama = await bacaDataLama();
 
   async function selesai() {
@@ -230,7 +244,7 @@ async function tampilkanLayarMigrasi(gerbang) {
       <button type="button" id="btnMulaiKosong">Mulai</button>`);
     document.getElementById('btnMulaiKosong').onclick = async (e) => {
       e.target.disabled = true; e.target.textContent = 'Menyiapkan…';
-      try { await mulaiKosong(); await selesai(); } catch (err) { e.target.disabled = false; e.target.textContent = 'Mulai'; tampilkanToast('Gagal menyiapkan. Coba lagi.', 'error'); }
+      try { await mulaiKosong(); await selesai(); } catch (err) { if (err && err.code === 'sudah-dimigrasi') { location.reload(); return; } e.target.disabled = false; e.target.textContent = 'Mulai'; tampilkanToast('Gagal menyiapkan. Coba lagi.', 'error'); }
     };
     return;
   }
@@ -251,6 +265,7 @@ async function tampilkanLayarMigrasi(gerbang) {
       location.hash = '#opname';
     } catch (err) {
       console.error(err);
+      if (err && err.code === 'sudah-dimigrasi') { location.reload(); return; }
       e.target.disabled = false; e.target.textContent = 'Coba lagi';
       st.textContent = 'Gagal memindahkan data. Periksa koneksi lalu coba lagi. Data lama masih utuh.';
     }

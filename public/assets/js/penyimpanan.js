@@ -365,7 +365,15 @@ async function bacaDataLama() {
   try { return await BACKEND.dokumen('toko/' + OWNER_UID); } catch (e) { console.error('Gagal membaca data lama', e); return null; }
 }
 
+// Pemindahan hanya boleh jalan SEKALI. Penandanya dicek langsung ke server (bukan cache perangkat),
+// kalau tidak, perangkat dgn cache lama bisa menjalankannya lagi dan menimpa data yg sudah dipakai.
+async function pastikanBelumDimigrasi() {
+  const ada = await BACKEND.dokumenServer('meta/migrasi');
+  if (ada) throw Object.assign(new Error('Pemindahan data sudah pernah dilakukan.'), { code: 'sudah-dimigrasi' });
+}
+
 async function jalankanMigrasi(lama) {
+  await pastikanBelumDimigrasi();
   const rencana = rencanaMigrasi(lama, new Date().toISOString());
   const ops = rencana.docs.map(d => ({ t: 'set', k: d.k, id: d.id, data: d.data }));
   await BACKEND.tulis(ops);                                                  // data dulu...
@@ -373,6 +381,7 @@ async function jalankanMigrasi(lama) {
   return rencana.meta.jumlah;
 }
 async function mulaiKosong() {
+  await pastikanBelumDimigrasi();
   await BACKEND.tulis([{ t: 'set', k: 'meta', id: 'migrasi', data: { selesai: true, at: new Date().toISOString(), versi: 2, perluOpname: false, sumber: 'kosong' } }]);
 }
 

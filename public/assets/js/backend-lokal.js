@@ -54,6 +54,10 @@ if (typeof window !== 'undefined' && window.location && typeof document !== 'und
         const [k, id] = path.split('/');
         return Promise.resolve(ambil(k).has(id) ? JSON.parse(JSON.stringify(ambil(k).get(id))) : null);
       },
+      dokumenServer(path) {
+        if (opsi.offline) return Promise.reject(Object.assign(new Error('offline'), { code: 'unavailable' }));
+        return b.dokumen(path);
+      },
       ekspor() { const o = {}; Object.keys(kol).forEach(k => { o[k] = Array.from(kol[k]); }); return o; },
       impor(o) { Object.keys(o).forEach(k => { kol[k] = new Map(o[k]); }); },
       kosong() { return Object.keys(kol).every(k => kol[k].size === 0); }

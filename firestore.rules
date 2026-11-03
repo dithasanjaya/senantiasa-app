@@ -1,17 +1,21 @@
 rules_version = '2';
 // Aturan data Senantiasa (project senantiasa-5598a). Uji: npm run test:rules (tanpa deploy).
-//  - Pemilik (uid tetap) membuka semuanya. Akun lain yg login = karyawan: stok, produk, transaksi.
+//  - Hanya DUA akun yang punya akses (sama seperti aturan lama): pemilik dan satu akun karyawan.
+//    Akun lain yang berhasil login (mis. mendaftar sendiri) tetap ditolak di semua koleksi.
+//    Menambah karyawan: tambahkan uid-nya di daftar `STAF` bawah ini lalu deploy aturan.
+//  - Pemilik membuka semuanya. Karyawan: stok, produk, transaksi.
 //  - Pembukuan & pengaturan biaya HANYA pemilik -- dijaga di sini, bukan cuma disembunyikan di tampilan.
 service cloud.firestore {
   match /databases/{database}/documents {
-    function masuk() { return request.auth != null; }
     function pemilik() { return request.auth != null && request.auth.uid == 'I6owACv9yJZQndKJK2Aq7aSqagh2'; }
+    function staf() { return request.auth != null && request.auth.uid in ['UvWmcn4tGGWC0O12kpwkVzYmuqi1']; }
+    function masuk() { return pemilik() || staf(); }
 
-    // Dokumen SISTEM LAMA (satu dokumen raksasa). Dibaca sekali untuk pemindahan data. Penulisan
-    // dibiarkan selama aplikasi lama di GitHub Pages masih dipakai -- setelah peralihan, ganti
-    // "write: if masuk()" jadi "write: if false".
+    // Dokumen SISTEM LAMA (satu dokumen raksasa), aturan SAMA dengan sebelumnya. Dibaca sekali untuk
+    // pemindahan data. Penulisan dibiarkan selama aplikasi lama di GitHub Pages masih dipakai --
+    // setelah peralihan, ganti "write" jadi "write: if false".
     match /toko/{uid} {
-      allow read, write: if masuk();
+      allow read, write: if request.auth != null && (request.auth.uid == uid || staf());
     }
 
     match /produk/{id} {

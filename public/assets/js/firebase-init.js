@@ -66,6 +66,12 @@ if (window.MODE_LOKAL) {
     async dokumen(path) {
       const snap = await F.getDoc(F.doc(db, path));
       return snap.exists() ? snap.data() : null;
+    },
+    // Baca LANGSUNG dari server (tidak dari cache lokal); gagal kalau offline. Dipakai utk
+    // keputusan yg tidak boleh memakai data basi, mis. apakah pemindahan data sudah pernah jalan.
+    async dokumenServer(path) {
+      const snap = await F.getDocFromServer(F.doc(db, path));
+      return snap.exists() ? snap.data() : null;
     }
   };
 

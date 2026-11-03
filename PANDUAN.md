@@ -65,13 +65,17 @@ Menu Transaksi mencatat **pergerakan barang**, bukan uang yang diterima, karena 
 
 ## 6. Akses karyawan
 
-Karyawan masuk dengan akunnya sendiri dan bisa mengelola stok, produk, dan transaksi. Tambah atau hapus akun karyawan lewat Firebase Console, Authentication, Users. Setelah itu matikan pendaftaran mandiri (Authentication, Settings, User actions, hilangkan centang *Enable create (sign-up)*) supaya orang asing tidak bisa membuat akun sendiri.
+Hanya **dua akun** yang punya akses ke data: akun pemilik dan satu akun karyawan. Akun lain tidak bisa membuka data sama sekali, walau berhasil login atau mendaftar sendiri. Karyawan bisa mengelola stok, produk, dan transaksi. Pembukuan hanya terbuka untuk pemilik.
+
+Menambah karyawan baru: buat akunnya di Firebase Console, Authentication, Users, salin UID-nya, lalu daftarkan di fungsi `staf()` pada `firestore.rules` dan deploy aturan. Sebaiknya pendaftaran mandiri juga dimatikan (Authentication, Settings, User actions, hilangkan centang *Enable create (sign-up)*).
 
 ## 7. Pemindahan dari versi lama (sekali saja, pemilik)
 
 Pertama kali pemilik membuka aplikasi baru, muncul layar **Pindahkan data lama**.
 
 - Data lama (produk, varian, transaksi, pembukuan, pengaturan) disalin ke sistem baru. Data lama **tidak diubah dan tidak dihapus**.
+- Pemindahan hanya berjalan **sekali**, dan butuh internet: aplikasi memeriksa ke server dulu apakah sudah pernah dipindahkan dari perangkat lain.
+- Selama pemindahan dan sesudahnya, **jangan pakai versi lama** untuk mencatat. Catatan yang masuk ke versi lama setelah pemindahan tidak ikut terbawa.
 - Versi lama menyimpan stok terpisah per channel dan menjumlahkannya, sehingga stok fisik sebenarnya tidak bisa dihitung dari angka lama. Aplikasi **menebak** stok fisik dari channel terbesar, mencatat angka lama sebagai petunjuk, lalu mengarahkan ke **Hitung Stok** supaya kamu mengonfirmasi dengan barang yang ada.
 - Angka di Shopee dan TikTok diisi dari angka lama masing-masing, jadi selisihnya langsung terlihat di Sinkron Marketplace.
 - Foto produk yang dulu diunggah manual hanya tersimpan di satu perangkat dan tidak ikut pindah. Foto katalog asli (dari nama file) tetap muncul. Unggah ulang foto lainnya lewat Edit Info produk.
